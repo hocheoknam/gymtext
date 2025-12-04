@@ -2,7 +2,9 @@
 import { neon } from "@neondatabase/serverless";
 
 // 1. 用 Nuxt 官方方式读 env（自动导入，无需 import）
-const { NUXT_NEON_DATABASE_URL } = useRuntimeConfig();
+const NUXT_NEON_DATABASE_URL =
+"postgresql://neondb_owner:npg_OXBCtqD50PZK@ep-misty-forest-a1e20hnb.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+
 
 if (!NUXT_NEON_DATABASE_URL) {
   throw new Error("❌ 未配置 NUXT_NEON_DATABASE_URL 环境变量");
@@ -53,6 +55,9 @@ export default getNeon;
     console.log("\n======================================");
   } catch (e) {
     console.error("\n❌ 数据库连接失败！");
+    console.alert("数据库连接失败，请检查环境变量配置是否正确。");
+    //数据库信息
+    console.error("数据库URL:", NUXT_NEON_DATABASE_URL);
     console.error("错误信息:", e.message);
     console.error("======================================\n");
   }
