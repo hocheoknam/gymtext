@@ -34,6 +34,8 @@ transporter.verify((err, success) => {
   } else {
     console.log("[Mail] QQ SMTP 连接成功，可正常发信");
   }
+  console.log("[Mail] 登录成功，用户名:", config.smtpUser);
+  console.log("=".repeat(30));
 });
 
 /**

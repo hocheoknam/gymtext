@@ -11,4 +11,12 @@ export default defineNuxtConfig({
       hmr: true, // 保留你之前的热加载配置
     },
   },
+  runtimeConfig: {
+    // SMTP 邮件配置
+    smtpHost: process.env.SMTP_HOST,
+    smtpPort: process.env.SMTP_PORT,
+    smtpSecure: process.env.SMTP_SECURE,
+    smtpUser: process.env.SMTP_USER,
+    smtpPass: process.env.SMTP_PASS,
+  },
 });

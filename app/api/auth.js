@@ -4,7 +4,7 @@
  * 使用axios插件替代request工具
  */
 // 导入axios实例
-import { applyPlugin, useNuxtApp } from "#app";
+import { useNuxtApp } from "#app";
 // 获取axios实例的辅助函数
 const getAxios = () => {
   const nuxtApp = useNuxtApp();
@@ -12,13 +12,24 @@ const getAxios = () => {
 };
 
 /**
- * 注册相关 API 接口
- * @
+ * 获得验证码接口
+ * @param email 邮箱地址
+ * @returns 验证码响应
  */
-
+export async function sendCode(email) {
+  const axios = getAxios();
+  const response = await axios.post("/sendCode", {
+    email,
+  });
+  return response.data;
+}
 /**
  * 注册接口
  * @param params 注册参数（邮箱、验证码、密码）
+ * @param params.username 用户名
+ * @param params.email 邮箱地址
+ * @param params.code 验证码
+ * @param params.password 密码
  * @returns 注册响应
  */
 export async function register(params) {
@@ -30,19 +41,6 @@ export async function register(params) {
     email,
     code,
     password,
-  });
-  return response.data;
-}
-
-/**
- * 获得验证码接口
- * @param email 邮箱地址
- * @returns 验证码响应
- */
-export async function sendCode(email) {
-  const axios = getAxios();
-  const response = await axios.post("/sendCode", {
-    email,
   });
   return response.data;
 }
@@ -63,17 +61,3 @@ export async function login(credentials) {
     throw error;
   }
 }
-
-/**
- * 用户登出接口
- */
-export async function logout() {
-  const axios = getAxios();
-  try {
-    await axios.post("/auth/logout");
-  } catch (error) {
-    console.error("登出失败:", error);
-    throw error;
-  }
-}
-
