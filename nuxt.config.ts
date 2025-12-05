@@ -19,4 +19,5 @@ export default defineNuxtConfig({
     smtpUser: process.env.SMTP_USER,
     smtpPass: process.env.SMTP_PASS,
   },
+  modules: ["@element-plus/nuxt", "@unocss/nuxt"],
 });

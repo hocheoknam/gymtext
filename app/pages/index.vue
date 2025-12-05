@@ -27,8 +27,12 @@
         <ul>
           <li><a href="#home" @click="mobileMenuOpen = false">首页</a></li>
           <li><a href="#about" @click="mobileMenuOpen = false">关于我</a></li>
-          <li><a href="#services" @click="mobileMenuOpen = false">课程服务</a></li>
-          <li><a href="#testimonials" @click="mobileMenuOpen = false">会员评价</a></li>
+          <li>
+            <a href="#services" @click="mobileMenuOpen = false">课程服务</a>
+          </li>
+          <li>
+            <a href="#testimonials" @click="mobileMenuOpen = false">会员评价</a>
+          </li>
           <li><a href="#contact" @click="mobileMenuOpen = false">联系我</a></li>
         </ul>
       </div>
@@ -65,8 +69,12 @@
           </div>
           <div class="about-info">
             <h3>专业健身教练</h3>
-            <p>您好！我是Mike，拥有8年专业健身教练经验，持有国际健身教练认证和运动营养学资格证书。</p>
-            <p>我专注于帮助客户实现个性化健身目标，无论是增肌、减脂、塑形还是提高体能，我都能为您提供科学有效的训练计划。</p>
+            <p>
+              您好！我是Mike，拥有8年专业健身教练经验，持有国际健身教练认证和运动营养学资格证书。
+            </p>
+            <p>
+              我专注于帮助客户实现个性化健身目标，无论是增肌、减脂、塑形还是提高体能，我都能为您提供科学有效的训练计划。
+            </p>
             <div class="qualifications">
               <h4>专业资质：</h4>
               <ul>
@@ -93,12 +101,25 @@
           <!-- 私教课程 -->
           <div class="service-card">
             <div class="service-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-12 h-12"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
               </svg>
             </div>
             <h3>一对一私教</h3>
-            <p>个性化定制训练计划，专业指导，实时调整，确保您的训练效果最大化。</p>
+            <p>
+              个性化定制训练计划，专业指导，实时调整，确保您的训练效果最大化。
+            </p>
             <div class="service-price">¥300/课时</div>
             <a href="#contact" class="btn-secondary">了解详情</a>
           </div>
@@ -106,13 +127,30 @@
           <!-- 团体课程 -->
           <div class="service-card">
             <div class="service-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-12 h-12"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z"
+                />
               </svg>
             </div>
             <h3>团体课程</h3>
-            <p>动感十足的团体训练课程，包括HIIT、瑜伽、普拉提等多种选择，在欢乐氛围中锻炼。</p>
+            <p>
+              动感十足的团体训练课程，包括HIIT、瑜伽、普拉提等多种选择，在欢乐氛围中锻炼。
+            </p>
             <div class="service-price">¥100/课时</div>
             <a href="#contact" class="btn-secondary">了解详情</a>
           </div>
@@ -120,12 +158,25 @@
           <!-- 营养指导 -->
           <div class="service-card">
             <div class="service-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-12 h-12"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+                />
               </svg>
             </div>
             <h3>营养指导</h3>
-            <p>科学的饮食计划制定，帮助您更好地配合训练，实现健身目标，改善整体健康状况。</p>
+            <p>
+              科学的饮食计划制定，帮助您更好地配合训练，实现健身目标，改善整体健康状况。
+            </p>
             <div class="service-price">¥500/月</div>
             <a href="#contact" class="btn-secondary">了解详情</a>
           </div>
@@ -133,12 +184,25 @@
           <!-- 企业培训 -->
           <div class="service-card">
             <div class="service-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 1.875 1.875v1.5a1.875 1.875 0 0 1-1.875 1.875H5.625A1.875 1.875 0 0 1 3.75 7.875V6.375A1.875 1.875 0 0 1 5.625 4.5Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-12 h-12"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 1.875 1.875v1.5a1.875 1.875 0 0 1-1.875 1.875H5.625A1.875 1.875 0 0 1 3.75 7.875V6.375A1.875 1.875 0 0 1 5.625 4.5Z"
+                />
               </svg>
             </div>
             <h3>企业培训</h3>
-            <p>为企业提供员工健康管理和团队建设服务，提高员工身体素质和团队凝聚力。</p>
+            <p>
+              为企业提供员工健康管理和团队建设服务，提高员工身体素质和团队凝聚力。
+            </p>
             <div class="service-price">按需定制</div>
             <a href="#contact" class="btn-secondary">了解详情</a>
           </div>
@@ -180,11 +244,24 @@
         <div class="testimonials-grid">
           <div class="testimonial-card">
             <div class="testimonial-quote">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 10.5c0 7.142-7.5 11.25-7.5 11.25S6.75 17.642 6.75 10.5a7.5 7.5 0 1 1 15 0Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-8 h-8"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21.75 10.5c0 7.142-7.5 11.25-7.5 11.25S6.75 17.642 6.75 10.5a7.5 7.5 0 1 1 15 0Z"
+                />
               </svg>
             </div>
-            <p>"在Mike教练的指导下，我三个月减掉了15公斤，不仅体重减轻了，体能也明显提升。他的训练方法科学有效，而且很有耐心。"</p>
+            <p>
+              "在Mike教练的指导下，我三个月减掉了15公斤，不仅体重减轻了，体能也明显提升。他的训练方法科学有效，而且很有耐心。"
+            </p>
             <div class="testimonial-author">
               <div class="author-avatar"></div>
               <div class="author-info">
@@ -195,11 +272,24 @@
           </div>
           <div class="testimonial-card">
             <div class="testimonial-quote">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 10.5c0 7.142-7.5 11.25-7.5 11.25S6.75 17.642 6.75 10.5a7.5 7.5 0 1 1 15 0Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-8 h-8"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21.75 10.5c0 7.142-7.5 11.25-7.5 11.25S6.75 17.642 6.75 10.5a7.5 7.5 0 1 1 15 0Z"
+                />
               </svg>
             </div>
-            <p>"Mike不仅是一位优秀的教练，更是一位专业的营养师。他为我制定的饮食计划简单易行，配合训练，让我的肌肉线条变得更加明显。"</p>
+            <p>
+              "Mike不仅是一位优秀的教练，更是一位专业的营养师。他为我制定的饮食计划简单易行，配合训练，让我的肌肉线条变得更加明显。"
+            </p>
             <div class="testimonial-author">
               <div class="author-avatar"></div>
               <div class="author-info">
@@ -210,11 +300,24 @@
           </div>
           <div class="testimonial-card">
             <div class="testimonial-quote">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 10.5c0 7.142-7.5 11.25-7.5 11.25S6.75 17.642 6.75 10.5a7.5 7.5 0 1 1 15 0Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-8 h-8"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21.75 10.5c0 7.142-7.5 11.25-7.5 11.25S6.75 17.642 6.75 10.5a7.5 7.5 0 1 1 15 0Z"
+                />
               </svg>
             </div>
-            <p>"作为一名上班族，我一直缺乏锻炼。Mike为我设计的30分钟高效训练计划非常适合我，现在我不仅精力充沛，工作效率也提高了。"</p>
+            <p>
+              "作为一名上班族，我一直缺乏锻炼。Mike为我设计的30分钟高效训练计划非常适合我，现在我不仅精力充沛，工作效率也提高了。"
+            </p>
             <div class="testimonial-author">
               <div class="author-avatar"></div>
               <div class="author-info">
@@ -242,7 +345,9 @@
             </div>
             <div class="story-content">
               <h3>陈先生 - 减重30公斤</h3>
-              <p>从200斤减到140斤，不仅改善了高血压问题，更重要的是找回了自信和健康的生活方式。</p>
+              <p>
+                从200斤减到140斤，不仅改善了高血压问题，更重要的是找回了自信和健康的生活方式。
+              </p>
               <div class="story-stats">
                 <div>减重：30公斤</div>
                 <div>时间：6个月</div>
@@ -256,7 +361,9 @@
             </div>
             <div class="story-content">
               <h3>林女士 - 产后恢复</h3>
-              <p>产后3个月开始训练，6个月内恢复孕前身材，并且比孕前更加健康有活力。</p>
+              <p>
+                产后3个月开始训练，6个月内恢复孕前身材，并且比孕前更加健康有活力。
+              </p>
               <div class="story-stats">
                 <div>腰围减少：15cm</div>
                 <div>时间：6个月</div>
@@ -279,15 +386,25 @@
             <form @submit.prevent="handleSubmit">
               <div class="form-group">
                 <label for="name">您的姓名</label>
-                <input type="text" id="name" placeholder="请输入姓名" required>
+                <input
+                  type="text"
+                  id="name"
+                  placeholder="请输入姓名"
+                  required
+                />
               </div>
               <div class="form-group">
                 <label for="phone">手机号码</label>
-                <input type="tel" id="phone" placeholder="请输入手机号码" required>
+                <input
+                  type="tel"
+                  id="phone"
+                  placeholder="请输入手机号码"
+                  required
+                />
               </div>
               <div class="form-group">
                 <label for="email">电子邮箱</label>
-                <input type="email" id="email" placeholder="请输入电子邮箱">
+                <input type="email" id="email" placeholder="请输入电子邮箱" />
               </div>
               <div class="form-group">
                 <label for="service">您感兴趣的服务</label>
@@ -301,7 +418,11 @@
               </div>
               <div class="form-group">
                 <label for="message">留言</label>
-                <textarea id="message" rows="4" placeholder="请输入您的问题或需求"></textarea>
+                <textarea
+                  id="message"
+                  rows="4"
+                  placeholder="请输入您的问题或需求"
+                ></textarea>
               </div>
               <button type="submit" class="btn-primary">提交预约</button>
             </form>
@@ -309,51 +430,151 @@
           <div class="contact-info">
             <h3>联系方式</h3>
             <div class="info-item">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-6 h-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"
+                />
               </svg>
               <span>电话：138-8888-8888</span>
             </div>
             <div class="info-item">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-6 h-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+                />
               </svg>
               <span>邮箱：mike@fitnesscoach.com</span>
             </div>
             <div class="info-item">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-6 h-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+                />
               </svg>
               <span>地址：北京市朝阳区建国路88号健身中心</span>
             </div>
             <div class="info-item">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-6 h-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 6v12m6-6H6"
+                />
               </svg>
               <span>营业时间：周一至周日 6:00-22:00</span>
             </div>
             <div class="social-links">
               <a href="#" class="social-link">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 2.25h-3a3 3 0 0 0-3 3v1.5h-1.5a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 9 2.25H10.5V4.5h-3v3H9a1.5 1.5 0 0 1 1.5 1.5V12h1.5V9.75H13.5V12H15V9.75h1.5v-3H15.75z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5h.75a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h.75m3-3H18a1.5 1.5 0 0 1 1.5 1.5v1.5m-1.5-1.5H15m6 3H9m1.5 1.5H12m-3-3H9" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 2.25h-3a3 3 0 0 0-3 3v1.5h-1.5a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 9 2.25H10.5V4.5h-3v3H9a1.5 1.5 0 0 1 1.5 1.5V12h1.5V9.75H13.5V12H15V9.75h1.5v-3H15.75z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M19.5 10.5h.75a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h.75m3-3H18a1.5 1.5 0 0 1 1.5 1.5v1.5m-1.5-1.5H15m6 3H9m1.5 1.5H12m-3-3H9"
+                  />
                 </svg>
               </a>
               <a href="#" class="social-link">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M22.5 4.5v15m0-15H18m1.5 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.75 7.5h-3v13.5h3V7.5Z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M22.5 4.5v15m0-15H18m1.5 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.75 7.5h-3v13.5h3V7.5Z"
+                  />
                 </svg>
               </a>
               <a href="#" class="social-link">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+                  />
                 </svg>
               </a>
               <a href="#" class="social-link">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"
+                  />
                 </svg>
               </a>
             </div>
@@ -405,82 +626,93 @@
 
     <!-- 返回顶部按钮 -->
     <button v-if="showBackToTop" @click="scrollToTop" class="back-to-top">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-        <path stroke-linecap="round" stroke-linejoin="round" d="m18 15-6-6-6 6" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        class="w-6 h-6"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="m18 15-6-6-6 6"
+        />
       </svg>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from "vue";
 
 // 移动端菜单状态
-const mobileMenuOpen = ref(false)
+const mobileMenuOpen = ref(false);
 
 // 返回顶部按钮状态
-const showBackToTop = ref(false)
+const showBackToTop = ref(false);
 
 // 切换移动端菜单
 const toggleMobileMenu = () => {
-  mobileMenuOpen.value = !mobileMenuOpen.value
-}
+  mobileMenuOpen.value = !mobileMenuOpen.value;
+};
 
 // 滚动到顶部
 const scrollToTop = () => {
   window.scrollTo({
     top: 0,
-    behavior: 'smooth'
-  })
-}
+    behavior: "smooth",
+  });
+};
 
 // 处理滚动事件
 const handleScroll = () => {
-  showBackToTop.value = window.scrollY > 300
-  
+  showBackToTop.value = window.scrollY > 300;
+
   // 高亮当前导航项
-  const sections = document.querySelectorAll('section')
-  const navLinks = document.querySelectorAll('.main-nav a')
-  
-  let current = ''
-  
-  sections.forEach(section => {
-    const sectionTop = section.offsetTop
-    const sectionHeight = section.clientHeight
-    if (window.scrollY >= (sectionTop - 100)) {
-      current = section.getAttribute('id') || ''
+  const sections = document.querySelectorAll("section");
+  const navLinks = document.querySelectorAll(".main-nav a");
+
+  let current = "";
+
+  sections.forEach((section) => {
+    const sectionTop = section.offsetTop;
+    const sectionHeight = section.clientHeight;
+    if (window.scrollY >= sectionTop - 100) {
+      current = section.getAttribute("id") || "";
     }
-  })
-  
-  navLinks.forEach(link => {
-    link.classList.remove('active')
-    if (link.getAttribute('href') === `#${current}`) {
-      link.classList.add('active')
+  });
+
+  navLinks.forEach((link) => {
+    link.classList.remove("active");
+    if (link.getAttribute("href") === `#${current}`) {
+      link.classList.add("active");
     }
-  })
-}
+  });
+};
 
 // 表单提交处理
 const handleSubmit = () => {
   // 在实际应用中，这里应该有表单验证和提交逻辑
-  alert('预约信息已提交，我们会尽快与您联系！')
-}
+  alert("预约信息已提交，我们会尽快与您联系！");
+};
 
 // 组件挂载时添加滚动事件监听
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
-})
+  window.addEventListener("scroll", handleScroll);
+});
 
 // 组件卸载时移除滚动事件监听
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-})
+  window.removeEventListener("scroll", handleScroll);
+});
 </script>
 
 <style scoped>
 /* 全局样式重置和基础设置 */
 .fitness-coach-website {
-  font-family: 'Arial', sans-serif;
+  font-family: "Arial", sans-serif;
   line-height: 1.6;
   color: #333;
   scroll-behavior: smooth;
@@ -606,7 +838,7 @@ onUnmounted(() => {
 }
 
 .main-nav ul li a::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -5px;
   left: 0;
@@ -665,7 +897,7 @@ onUnmounted(() => {
 }
 
 .hero-section::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 0;
@@ -719,7 +951,7 @@ onUnmounted(() => {
 }
 
 .coach-image::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 15px;
   left: -15px;
@@ -791,7 +1023,7 @@ onUnmounted(() => {
 }
 
 .qualifications ul li::before {
-  content: '✓';
+  content: "✓";
   position: absolute;
   left: 0;
   color: #ff3e00;
@@ -979,7 +1211,7 @@ onUnmounted(() => {
 }
 
 .story-image.before::after {
-  content: 'BEFORE';
+  content: "BEFORE";
   position: absolute;
   bottom: 20px;
   left: 50%;
@@ -992,7 +1224,7 @@ onUnmounted(() => {
 }
 
 .story-image.after::after {
-  content: 'AFTER';
+  content: "AFTER";
   position: absolute;
   bottom: 20px;
   left: 50%;
@@ -1215,19 +1447,19 @@ onUnmounted(() => {
   .container {
     max-width: 960px;
   }
-  
+
   .hero-content h2 {
     font-size: 3rem;
   }
-  
+
   .services-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .testimonials-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .stories-slider {
     grid-template-columns: 1fr;
   }
@@ -1237,41 +1469,41 @@ onUnmounted(() => {
   .container {
     max-width: 720px;
   }
-  
+
   .main-nav {
     display: none;
   }
-  
+
   .mobile-nav-toggle {
     display: block;
   }
-  
+
   .hero-section .container {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .hero-content,
   .hero-image {
     max-width: 100%;
     margin-bottom: 30px;
   }
-  
+
   .about-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .about-image {
     flex: 0 0 auto;
     width: 80%;
     margin-bottom: 30px;
   }
-  
+
   .contact-content {
     flex-direction: column;
   }
-  
+
   .footer-content {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1281,24 +1513,24 @@ onUnmounted(() => {
   .container {
     max-width: 540px;
   }
-  
+
   .section-header h2 {
     font-size: 2rem;
   }
-  
+
   .hero-content h2 {
     font-size: 2.5rem;
   }
-  
+
   .hero-buttons {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .footer-content {
     grid-template-columns: 1fr;
     gap: 30px;
@@ -1309,31 +1541,31 @@ onUnmounted(() => {
   .container {
     padding: 0 15px;
   }
-  
+
   .section-header h2 {
     font-size: 1.8rem;
   }
-  
+
   .hero-section {
     padding: 100px 0 80px;
   }
-  
+
   .hero-content h2 {
     font-size: 2rem;
   }
-  
+
   .coach-image {
     height: 300px;
   }
-  
+
   .profile-image {
     height: 300px;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .story-before-after {
     height: 200px;
   }
@@ -1358,7 +1590,7 @@ onUnmounted(() => {
 
 .menu-icon::before,
 .menu-icon::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 30px;
   height: 3px;
