@@ -47,17 +47,11 @@ export async function register(params) {
 
 /**
  * 用户登录接口
- * @param credentials 登录凭证
+ * @param params 登录凭证
  * @returns 登录响应
  */
-export async function login(credentials) {
+export async function login(params) {
   const axios = getAxios();
-  try {
-    // 调用登录接口server/api/login2.ts
-    const response = await axios.post("/login2", credentials);
-    return response.data;
-  } catch (error) {
-    console.error("登录失败:", error);
-    throw error;
-  }
+  const response = await axios.post("/login", params);
+  return response.data;
 }
