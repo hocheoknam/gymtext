@@ -4,13 +4,17 @@ import bcrypt from "bcrypt";
 
 export default defineEventHandler(async (event) => {
   const { username, email, code, password } = await readBody(event);
-
-  // 验证验证码
-  if (getCode(email) !== code) {
-    console.log("[Register] 验证码错误，email:", email, "code:", code);
-    return { success: false, message: "验证码错误" };
+  try {
+    // 验证验证码
+    if (getCode(email) !== code) {
+      console.log("[Register] 验证码错误，email:", email, "code:", code);
+      return { success: false, message: "验证码错误" };
+    }
+  } catch (error) {
+    console.log("[Register] 验证码验证失败，email:", email, "code:", code);
+    return { success: false, message: "验证码验证失败" };
   }
-
+  
   //连接数据库插入一条用户信息
   const mySql = getNeon();
   console.log("[Register] 数据库连接成功，准备注册用户:", username, email);
@@ -31,6 +35,12 @@ export default defineEventHandler(async (event) => {
     console.log("[Register] 邮箱已存在:", email);
     return { success: false, message: "邮箱已存在" };
   }
+
+//密码不为空或不能少于6位
+if (!password || password.length < 6) {
+  console.log("[Register] 密码为空或少于6位:", password);
+  return { success: false, message: "密码为空或少于6位" };
+}
 
   // 密码加密
   const hashedPassword = await bcrypt.hash(password, 10);

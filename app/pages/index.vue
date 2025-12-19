@@ -4,7 +4,7 @@
     <header class="navbar">
       <div class="container">
         <div class="logo">
-          <h1>健身教练<span class="highlight">Mike</span></h1>
+          <h1>健身<span class="highlight"></span></h1>
         </div>
         <nav class="main-nav">
           <ul>

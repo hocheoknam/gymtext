@@ -189,7 +189,8 @@ async function handleLogin() {
       ElMessage.success("登录成功");
       loginResult.value = `登录成功: ${JSON.stringify(response)}`;
       // 这里可以添加登录成功后的跳转逻辑
-      // await navigateTo('/home');
+       await navigateTo('/home');
+
     } else {
       ElMessage.error(response.message || "登录失败");
       loginResult.value = `登录失败: ${response.message}`;
@@ -261,7 +262,7 @@ async function handleRegister() {
       ElMessage.success("注册成功");
       registerResult.value = `注册成功: ${JSON.stringify(response)}`;
       // 注册成功后可以切换到登录模式
-      // activeMode.value = 'login';
+       activeMode.value = 'login';
     } else {
       ElMessage.error(response.message || "注册失败");
       registerResult.value = `注册失败: ${response.message}`;

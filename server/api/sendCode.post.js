@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
       email
     )
   ) {
+    console.log("邮箱格式错误:", email);
     throw createError({ statusCode: 400, statusMessage: "邮箱格式错误" });
   }
   // 第三步：查询数据库验证用户是否已注册
@@ -35,11 +36,17 @@ export default defineEventHandler(async (event) => {
   setCode(email, code, 5 * 60);
   console.log("🔑 验证码发送被点击，邮箱:", email, "验证码:", code);
   // 发送验证码邮件 （生产环境请换成真实的注册链接）
-  await sendQQMail(
-    email, // 收件人邮箱
-    "欢迎加入xx健身，注册验证码", // 邮件标题
-    `您的验证码是：<b style="color:#ff6600">${code}</b>，5 分钟内有效。` // 邮件内容
-  );
+  try {
+    await sendQQMail(
+      email, // 收件人邮箱
+      "欢迎加入xx健身，注册验证码", // 邮件标题
+      `您的验证码是：<b style="color:#ff6600">${code}</b>，5 分钟内有效。` // 邮件内容
+    );
+  } catch (error) {
+    console.log("[SendCode] 验证码发送失败，email:", email, "code:", code);
+    console.log("[SendCode] 验证码发送失败，error:", JSON.stringify(error));
+    return { success: false, message: "验证码发送失败" };
+  }
 
   return {
     success: true,
