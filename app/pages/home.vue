@@ -7,21 +7,29 @@
         <div class="logo">
           <!-- 使用Element Plus图标替代SVG -->
           <div class="logo-icon">
-            <el-icon size="28"><IconAward /></el-icon>
+            <el-icon size="28"><HomeFilled /></el-icon>
           </div>
           <span class="logo-text">健身助手</span>
         </div>
-        
+
         <!-- 中间导航菜单 -->
         <nav class="nav-menu">
           <ul class="nav-list">
-            <li class="nav-item active"><a href="/home" class="nav-link">首页</a></li>
-            <li class="nav-item"><a href="/training" class="nav-link">训练库</a></li>
-            <li class="nav-item"><a href="/diet" class="nav-link">饮食指南</a></li>
-            <li class="nav-item"><a href="/data" class="nav-link">数据中心</a></li>
+            <li class="nav-item active">
+              <a href="/home" class="nav-link">首页</a>
+            </li>
+            <li class="nav-item">
+              <a href="/training" class="nav-link">训练库</a>
+            </li>
+            <li class="nav-item">
+              <a href="/diet" class="nav-link">饮食指南</a>
+            </li>
+            <li class="nav-item">
+              <a href="/data" class="nav-link">数据中心</a>
+            </li>
           </ul>
         </nav>
-        
+
         <!-- 右侧功能区 -->
         <div class="nav-actions">
           <!-- 搜索框 -->
@@ -31,24 +39,22 @@
               <el-icon size="16"><Search /></el-icon>
             </button>
           </div>
-          
+
           <!-- 通知和消息图标 -->
           <div class="notification-icons">
             <button class="icon-btn message-btn">
               <el-icon size="20"><Message /></el-icon>
             </button>
             <button class="icon-btn comment-btn">
-              <el-icon size="20"><Message /></el-icon>
+              <el-icon size="20"><ChatLineSquare /></el-icon>
             </button>
           </div>
-          
+
           <!-- 用户头像 -->
           <div class="user-profile">
-            <div class="user-avatar">
-              <el-icon size="36"><User /></el-icon>
-            </div>
+            <el-icon size="20"><User /></el-icon>
           </div>
-          
+
           <!-- 提醒图标 -->
           <button class="icon-btn notification-btn">
             <el-icon size="20"><Bell /></el-icon>
@@ -65,42 +71,41 @@
           <div class="weight-header">
             <h3 class="weight-title">个人体重数据</h3>
             <button class="edit-btn" @click="editWeightData">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-              </svg>
+              <el-icon size="16"><Edit /></el-icon>
             </button>
           </div>
-          
+
           <div class="weight-data">
             <!-- 当前体重 -->
             <div class="weight-item current-weight">
               <div class="weight-label">当前体重</div>
-              <div class="weight-value">{{ currentWeight }}<span class="weight-unit">kg</span></div>
-              <div class="weight-trend" :class="weightChange < 0 ? 'down' : 'up'">{{ weightChange < 0 ? '↓' : '↑' }} {{ Math.abs(weightChange) }}kg</div>
-            </div>
-            
-            <!-- 体重对比图表 -->
-            <div class="weight-chart">
-              <div class="chart-lines">
-                <div class="chart-line current-line">
-                  <div class="line" style="height: 40%;"></div>
-                  <div class="line-dot"></div>
-                </div>
-                <div class="chart-line target-line">
-                  <div class="line" style="height: 30%;"></div>
-                  <div class="line-dot"></div>
-                </div>
+              <div class="weight-value">
+                {{ currentWeight }}<span class="weight-unit">kg</span>
+              </div>
+              <div
+                class="weight-trend"
+                :class="weightChange < 0 ? 'down' : 'up'"
+              >
+                {{ weightChange < 0 ? "↓" : "↑" }}
+                {{ Math.abs(weightChange) }}kg
               </div>
             </div>
-            
+
+            <!-- 体重对比图表 -->
+            <div
+              id="weight-chart"
+              style="width: 100%; height: 400px; min-height: 400px"
+            ></div>
             <!-- 目标体重 -->
             <div class="weight-item target-weight">
               <div class="weight-label">目标体重</div>
-              <div class="weight-value">{{ targetWeight }}<span class="weight-unit">kg</span></div>
+              <div class="weight-value">
+                {{ targetWeight }}<span class="weight-unit">kg</span>
+              </div>
               <div class="weight-progress">目标</div>
             </div>
           </div>
-          
+
           <!-- 体脂率信息 -->
           <div class="body-fat">
             <div class="fat-item">
@@ -115,7 +120,12 @@
           <h3 class="section-title">训练计划</h3>
           <div class="plan-cards">
             <!-- 计划卡片 1 -->
-            <div class="plan-card" v-for="plan in trainingPlans" :key="plan.id" @click="startTrainingPlan(plan.id)">
+            <div
+              class="plan-card"
+              v-for="plan in trainingPlans"
+              :key="plan.id"
+              @click="startTrainingPlan(plan.id)"
+            >
               <div class="plan-header">
                 <div :class="['plan-icon', plan.iconClass]"></div>
                 <div v-if="plan.isNew" class="plan-badge">新</div>
@@ -142,29 +152,26 @@
             <!-- 定制计划 -->
             <div class="action-card" @click="handleQuickAction('customPlan')">
               <div class="action-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
-                </svg>
+                <el-icon size="32"><Edit /></el-icon>
               </div>
               <span class="action-name">定制计划</span>
             </div>
-            
+
             <!-- 记录饮食 -->
             <div class="action-card" @click="handleQuickAction('recordDiet')">
               <div class="action-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
-                </svg>
+                <el-icon size="32"><Food /></el-icon>
               </div>
               <span class="action-name">记录饮食</span>
             </div>
-            
+
             <!-- 运动打卡 -->
-            <div class="action-card" @click="handleQuickAction('exerciseCheckin')">
+            <div
+              class="action-card"
+              @click="handleQuickAction('exerciseCheckin')"
+            >
               <div class="action-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                </svg>
+                <el-icon size="32"><VideoPlay /></el-icon>
               </div>
               <span class="action-name">运动打卡</span>
             </div>
@@ -178,63 +185,53 @@
       <div class="nav-items">
         <div class="nav-item active">
           <div class="nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-            </svg>
+            <el-icon><HomeFilled /></el-icon>
           </div>
           <span class="nav-text">首页</span>
         </div>
-        
+
         <div class="nav-item">
           <div class="nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-            </svg>
+            <el-icon><Search /></el-icon>
           </div>
           <span class="nav-text">探索</span>
         </div>
-        
+
         <div class="nav-item">
           <div class="nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20.656 11.092l-1.412-1.416L13 16.172l-2.24-2.24-1.424 1.424 3.664 3.664zM11 7h2v5.414L7.707 5.293 6.293 6.707 11 11.414z"/>
-            </svg>
+            <el-icon><Tools /></el-icon>
           </div>
           <span class="nav-text">工具</span>
         </div>
-        
+
         <div class="nav-item">
           <div class="nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
+            <el-icon><User /></el-icon>
           </div>
           <span class="nav-text">我的</span>
         </div>
       </div>
     </footer>
   </div>
-  
+
   <!-- 体重数据编辑弹窗 -->
   <div v-if="isEditModalVisible" class="modal-overlay" @click="closeEditModal">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h3 class="modal-title">编辑体重数据</h3>
         <button class="modal-close" @click="closeEditModal">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
-          </svg>
+          <el-icon size="20"><Close /></el-icon>
         </button>
       </div>
-      
+
       <div class="modal-body">
         <!-- 当前体重输入 -->
         <div class="form-group">
           <label for="currentWeight" class="form-label">当前体重 (kg)</label>
-          <input 
+          <input
             id="currentWeight"
             v-model.number="editCurrentWeight"
-            type="number" 
+            type="number"
             step="0.1"
             min="30"
             max="200"
@@ -242,14 +239,14 @@
             placeholder="请输入当前体重"
           />
         </div>
-        
+
         <!-- 目标体重输入 -->
         <div class="form-group">
           <label for="targetWeight" class="form-label">目标体重 (kg)</label>
-          <input 
+          <input
             id="targetWeight"
             v-model.number="editTargetWeight"
-            type="number" 
+            type="number"
             step="0.1"
             min="30"
             max="200"
@@ -257,14 +254,14 @@
             placeholder="请输入目标体重"
           />
         </div>
-        
+
         <!-- 体脂率输入 -->
         <div class="form-group">
           <label for="bodyFat" class="form-label">体脂率 (%)</label>
-          <input 
+          <input
             id="bodyFat"
             v-model.number="editBodyFat"
-            type="number" 
+            type="number"
             step="0.1"
             min="5"
             max="40"
@@ -273,7 +270,7 @@
           />
         </div>
       </div>
-      
+
       <div class="modal-footer">
         <button class="btn btn-cancel" @click="closeEditModal">取消</button>
         <button class="btn btn-primary" @click="saveWeightData">保存</button>
@@ -284,180 +281,263 @@
 
 <script setup>
 // 导入必要的函数
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from "vue";
 // 导入Element Plus图标组件
-import { 
-  HomeFilled, Search, Message, Bell, User, Edit,
-  ArrowDown, ArrowUp,
-  Aim, VideoPlay,
+import {
+  HomeFilled,
+  Search,
+  Message,
+  Bell,
+  User,
+  Edit,
+  ArrowDown,
+  ArrowUp,
+  Aim,
+  VideoPlay,
   ShoppingCart,
-  Calendar, List
-} from '@element-plus/icons-vue';
+  Calendar,
+  List,
+  Close,
+  Food,
+  ChatLineSquare,
+} from "@element-plus/icons-vue";
+// 导入图表组件
 
 // 定义响应式数据
-const currentWeight = ref(68)
-const targetWeight = ref(65)
-const bodyFat = ref(18)
-const weightChange = ref(-0.5)
+const currentWeight = ref(68);
+const targetWeight = ref(65);
+const bodyFat = ref(18);
+const weightChange = ref(-0.5);
 
 // 体重编辑弹窗相关状态
-const isEditModalVisible = ref(false)
-const editCurrentWeight = ref(68)
-const editTargetWeight = ref(65)
-const editBodyFat = ref(18)
-
+const isEditModalVisible = ref(false);
+const editCurrentWeight = ref(68);
+const editTargetWeight = ref(65);
+const editBodyFat = ref(18);
 // 训练计划数据
 const trainingPlans = ref([
   {
     id: 1,
-    name: '新手增肌计划',
-    period: '4周',
-    targetPeople: '健身新手',
-    // 移除不存在的SVG引用，使用CSS类代替
-    iconClass: 'plan-icon-1',
-    isNew: true
+    name: "新手增肌计划",
+    period: "4周",
+    targetPeople: "健身新手",
+    iconClass: "plan-icon-1",
+    isNew: true,
   },
   {
     id: 2,
-    name: '减脂塑形计划',
-    period: '6周',
-    targetPeople: '减脂人群',
-    iconClass: 'plan-icon-2',
-    isNew: true
+    name: "减脂塑形计划",
+    period: "6周",
+    targetPeople: "减脂人群",
+    iconClass: "plan-icon-2",
+    isNew: true,
   },
   {
     id: 3,
-    name: '上肢力量计划',
-    period: '8周',
-    targetPeople: '中级健身者',
-    iconClass: 'plan-icon-3',
-    isNew: false
+    name: "上肢力量计划",
+    period: "8周",
+    targetPeople: "中级健身者",
+    iconClass: "plan-icon-3",
+    isNew: false,
   },
   {
     id: 4,
-    name: '全身训练计划',
-    period: '12周',
-    targetPeople: '进阶训练者',
-    iconClass: 'plan-icon-4',
-    isNew: false
-  }
-])
+    name: "全身训练计划",
+    period: "12周",
+    targetPeople: "进阶训练者",
+    iconClass: "plan-icon-4",
+    isNew: false,
+  },
+]);
 
 // 生命周期钩子
+// 在 import 下面已有 onMounted，修改它：
 onMounted(() => {
-  // 页面加载时可以执行的初始化操作
-  console.log('健身仪表盘页面已加载')
-})
+  console.log("健身仪表盘页面已加载");
+
+  // ✅ 新增：初始化 ECharts
+  if (typeof window !== "undefined" && window.echarts) {
+    const chartDom = document.getElementById("weight-chart");
+    if (chartDom) {
+      const myChart = window.echarts.init(chartDom);
+
+      // 模拟体重数据（你可以换成真实数据）
+      const weightData = [
+        { date: "2025-12-01", weight: 72.5 },
+        { date: "2025-12-05", weight: 72.0 },
+        { date: "2025-12-10", weight: 71.3 },
+        { date: "2025-12-15", weight: 70.8 },
+        { date: "2025-12-20", weight: 70.2 },
+      ];
+
+      myChart.setOption({
+        title: {
+          text: "体重变化趋势",
+          left: "center",
+          textStyle: { fontSize: 16 },
+        },
+        tooltip: { trigger: "axis" },
+        xAxis: {
+          type: "category",
+          data: weightData.map((item) => item.date),
+          axisLabel: { rotate: 0 },
+        },
+        yAxis: {
+          type: "value",
+          name: "体重 (kg)",
+          min: function (value) {
+            return Math.floor(value.min * 0.95);
+          },
+        },
+        series: [
+          {
+            type: "line",
+            smooth: true,
+            symbol: "circle",
+            symbolSize: 6,
+            lineStyle: { width: 3 },
+            data: weightData.map((item) => item.weight),
+          },
+        ],
+        grid: {
+          left: "3%",
+          right: "3%",
+          bottom: "10%",
+          containLabel: true,
+        },
+      });
+
+      // 可选：窗口缩放时自适应
+      window.addEventListener("resize", () => myChart.resize());
+    } else {
+      console.error("❌ #weight-chart not found");
+    }
+  } else {
+    console.error("❌ ECharts not loaded. Check CDN in nuxt.config.js");
+  }
+});
 
 // 开始训练计划
 const startTrainingPlan = (planId) => {
-  console.log('开始训练计划:', planId)
+  console.log("开始训练计划:", planId);
   // 可以添加跳转到训练详情页面的逻辑
   // navigateTo(`/training/${planId}`)
-}
+};
 
 // 处理快捷功能点击
 const handleQuickAction = async (actionType) => {
-  console.log('点击快捷功能:', actionType)
+  console.log("点击快捷功能:", actionType);
   // 根据不同的功能类型执行不同的逻辑
   switch (actionType) {
-    case 'recordDiet':
+    case "recordDiet":
       // 跳转到饮食记录页面
-      await navigateTo('/yingyang')
-      break
-    case 'customPlan':
+      await navigateTo("/yingyang");
+      break;
+    case "customPlan":
       // 跳转到计划页面
-      await navigateTo('/jihua')
-      break
-    case 'exerciseCheckin':
+      await navigateTo("/jihua");
+      break;
+    case "exerciseCheckin":
       // 跳转到活动页面
-      await navigateTo('/huodong')
-      break
-    case 'kibpk':
+      await navigateTo("/huodong");
+      break;
+    case "kibpk":
       // 其他功能的处理逻辑可以在这里添加
-      console.log('该功能尚未实现')
-      break
+      console.log("该功能尚未实现");
+      break;
     default:
-      console.log('未知的功能类型')
+      console.log("未知的功能类型");
   }
-}
+};
 
 // 处理搜索
 const handleSearch = () => {
   // 搜索逻辑
-  console.log('执行搜索')
-}
+  console.log("执行搜索");
+};
 
 // 处理通知点击
 const handleNotification = () => {
-  console.log('查看通知')
-}
+  console.log("查看通知");
+};
 
 // 处理消息点击
 const handleMessage = () => {
-  console.log('查看消息')
-}
+  console.log("查看消息");
+};
 
 // 处理个人资料点击
 const handleProfile = () => {
-  console.log('查看个人资料')
-}
+  console.log("查看个人资料");
+};
 
 // 编辑体重数据
 const editWeightData = () => {
   // 在打开弹窗前，将当前数据复制到编辑表单中
-  editCurrentWeight.value = currentWeight.value
-  editTargetWeight.value = targetWeight.value
-  editBodyFat.value = bodyFat.value
+  editCurrentWeight.value = currentWeight.value;
+  editTargetWeight.value = targetWeight.value;
+  editBodyFat.value = bodyFat.value;
   // 显示编辑弹窗
-  isEditModalVisible.value = true
-  console.log('打开体重数据编辑弹窗')
-}
+  isEditModalVisible.value = true;
+  console.log("打开体重数据编辑弹窗");
+};
 
 // 关闭编辑弹窗
-const closeEditModal = function() {
-    isEditModalVisible.value = false;
-  };
+const closeEditModal = function () {
+  isEditModalVisible.value = false;
+};
 
 // 保存体重数据修改
-const saveWeightData = function() {
+const saveWeightData = function () {
   // 数据验证
   var isValid = true;
-  var errorMessage = '';
-  
+  var errorMessage = "";
+
   // 验证当前体重
-  if (!editCurrentWeight.value || editCurrentWeight.value < 30 || editCurrentWeight.value > 200) {
+  if (
+    !editCurrentWeight.value ||
+    editCurrentWeight.value < 30 ||
+    editCurrentWeight.value > 200
+  ) {
     isValid = false;
-    errorMessage = '请输入有效的当前体重（30-200kg）';
+    errorMessage = "请输入有效的当前体重（30-200kg）";
   }
   // 验证目标体重
-  else if (!editTargetWeight.value || editTargetWeight.value < 30 || editTargetWeight.value > 200) {
+  else if (
+    !editTargetWeight.value ||
+    editTargetWeight.value < 30 ||
+    editTargetWeight.value > 200
+  ) {
     isValid = false;
-    errorMessage = '请输入有效的目标体重（30-200kg）';
+    errorMessage = "请输入有效的目标体重（30-200kg）";
   }
   // 验证体脂率
-  else if (!editBodyFat.value || editBodyFat.value < 5 || editBodyFat.value > 40) {
+  else if (
+    !editBodyFat.value ||
+    editBodyFat.value < 5 ||
+    editBodyFat.value > 40
+  ) {
     isValid = false;
-    errorMessage = '请输入有效的体脂率（5-40%）';
+    errorMessage = "请输入有效的体脂率（5-40%）";
   }
-  
+
   if (!isValid) {
     alert(errorMessage);
     return;
   }
-  
+
   // 计算体重变化
   var newWeightChange = editCurrentWeight.value - currentWeight.value;
-  
+
   // 更新数据
   currentWeight.value = editCurrentWeight.value;
   targetWeight.value = editTargetWeight.value;
   bodyFat.value = editBodyFat.value;
   weightChange.value = newWeightChange;
-  
+
   // 关闭弹窗
   isEditModalVisible.value = false;
-}
+};
 </script>
 
 <style scoped lang="scss">
@@ -551,7 +631,7 @@ const saveWeightData = function() {
 }
 
 .nav-item.active .nav-link::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -748,11 +828,10 @@ const saveWeightData = function() {
 
 .weight-chart {
   flex: 2;
-  height: 100px;
+  height: 200px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  gap: 20px;
   padding: 0 20px;
 }
 
@@ -1194,50 +1273,50 @@ const saveWeightData = function() {
   .nav-container {
     padding: 0 16px;
   }
-  
+
   .nav-menu {
     display: none;
   }
-  
+
   .search-box {
     width: 150px;
   }
-  
+
   .content-container {
     padding: 0 16px;
   }
-  
+
   .weight-data {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .weight-chart {
     width: 100%;
     max-width: 300px;
   }
-  
+
   .plan-cards {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .action-cards {
     grid-template-columns: repeat(4, 1fr);
   }
-  
+
   .action-card {
     padding: 12px 8px;
   }
-  
+
   .action-icon {
     width: 40px;
     height: 40px;
   }
-  
+
   .bottom-nav {
     display: block;
   }
-  
+
   .main-content {
     padding-bottom: 72px; // 为底部导航留出空间
   }
@@ -1247,21 +1326,13 @@ const saveWeightData = function() {
   .plan-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .search-box {
     display: none;
   }
-  
+
   .nav-actions {
     gap: 8px;
   }
 }
 </style>
-
-
-
-
-
-
-
-

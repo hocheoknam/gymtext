@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   try {
     await sendQQMail(
       email, // 收件人邮箱
-      "欢迎加入xx健身，注册验证码", // 邮件标题
+      "欢迎加入我的健身房，注册验证码", // 邮件标题
       `您的验证码是：<b style="color:#ff6600">${code}</b>，5 分钟内有效。` // 邮件内容
     );
   } catch (error) {

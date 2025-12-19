@@ -8,19 +8,34 @@
       <nav class="sidebar-nav">
         <ul>
           <li class="nav-item">
-            <a href="/dashboard" class="nav-link active">概览</a>
+            <a href="/dashboard" class="nav-link active">
+              <el-icon><House /></el-icon>
+              概览
+            </a>
           </li>
           <li class="nav-item">
-            <a href="/dashboard/training" class="nav-link">智能训练</a>
+            <a href="/dashboard/training" class="nav-link">
+              <el-icon><User /></el-icon>
+              智能训练
+            </a>
           </li>
           <li class="nav-item">
-            <a href="/dashboard/social" class="nav-link">社交系统</a>
+            <a href="/dashboard/social" class="nav-link">
+              <el-icon><Users /></el-icon>
+              社交系统
+            </a>
           </li>
           <li class="nav-item">
-            <a href="/yingyang" class="nav-link">饮食管理</a>
+            <a href="/yingyang" class="nav-link">
+              <el-icon><ForkSpoon /></el-icon>
+              饮食管理
+            </a>
           </li>
           <li class="nav-item">
-            <a href="/dashboard/profile" class="nav-link">个人资料</a>
+            <a href="/dashboard/profile" class="nav-link">
+              <el-icon><Setting /></el-icon>
+              个人资料
+            </a>
           </li>
         </ul>
       </nav>
@@ -32,8 +47,14 @@
       <header class="dashboard-header">
         <h1>欢迎回来！</h1>
         <div class="header-actions">
-          <el-button type="text">通知</el-button>
-          <el-button type="text">设置</el-button>
+          <el-button type="text">
+            <el-icon><Bell /></el-icon>
+            通知
+          </el-button>
+          <el-button type="text">
+            <el-icon><Setting /></el-icon>
+            设置
+          </el-button>
         </div>
       </header>
 
@@ -75,7 +96,9 @@
           </template>
           <div class="activities-list">
             <el-empty description="暂无活动记录">
-              <el-button type="primary" @click="navigateToTraining">开始训练</el-button>
+              <el-button type="primary" @click="navigateToTraining"
+                >开始训练</el-button
+              >
             </el-empty>
           </div>
         </el-card>
@@ -85,11 +108,19 @@
 </template>
 
 <script setup>
-import { navigateTo } from 'nuxt/app'
+import { navigateTo } from "nuxt/app";
+import {
+  House,
+  User,
+  Users,
+  ForkSpoon,
+  Setting,
+  Bell,
+} from "@element-plus/icons-vue";
 
 // 导航到训练页面
 function navigateToTraining() {
-  navigateTo('/dashboard/training')
+  navigateTo("/dashboard/training");
 }
 </script>
 

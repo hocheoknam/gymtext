@@ -20,4 +20,23 @@ export default defineNuxtConfig({
     smtpPass: process.env.SMTP_PASS,
   },
   modules: ["@element-plus/nuxt", "@unocss/nuxt"],
+  // 开启组件自动导入
+  components: [
+    {
+      path: "~/components", // 组件目录
+      pathPrefix: false, // 禁用路径前缀
+    },
+  ],
+  app: {
+    head: {
+      title: "GymText",
+      script: [
+        {
+          src: "https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js",
+          // 可选：添加 async 保证不阻塞渲染
+          async: true,
+        },
+      ],
+    },
+  },
 });
