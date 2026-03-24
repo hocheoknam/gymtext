@@ -33,10 +33,10 @@ export default defineNuxtConfig({
       script: [
         {
           src: "https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js",
-          // 可选：添加 async 保证不阻塞渲染
-          async: true,
+          // 移除async属性，确保ECharts在页面组件挂载前加载完成
         },
       ],
     },
   },
 });
+

@@ -1,0 +1,22 @@
+{"properties": [
+  {
+    "name": "amap.key",
+    "type": "java.lang.String",
+    "description": "高德地图开发者Key"
+  },
+  {
+    "name": "amap.regeo-url-template",
+    "type": "java.lang.String",
+    "description": "逆地理编码API地址模板"
+  },
+  {
+    "name": "amap.charset",
+    "type": "java.lang.String",
+    "description": "A description for 'amap.charset'"
+  },
+  {
+    "name": "amap.extensions",
+    "type": "java.lang.String",
+    "description": "A description for 'amap.extensions'"
+  }
+]}

@@ -21,7 +21,7 @@
           </li>
           <li class="nav-item">
             <a href="/dashboard/social" class="nav-link">
-              <el-icon><Users /></el-icon>
+              <el-icon><User /></el-icon>
               社交系统
             </a>
           </li>
@@ -108,15 +108,8 @@
 </template>
 
 <script setup>
-import { navigateTo } from "nuxt/app";
-import {
-  House,
-  User,
-  Users,
-  ForkSpoon,
-  Setting,
-  Bell,
-} from "@element-plus/icons-vue";
+import { ref, onMounted, navigateTo } from "nuxt/app";
+import { User, House, ForkSpoon, Setting, ChevronRight, MoreFilled, Calendar, Clock, Bell } from "@element-plus/icons-vue";
 
 // 导航到训练页面
 function navigateToTraining() {
@@ -226,3 +219,9 @@ function navigateToTraining() {
   color: #1e293b;
 }
 </style>
+
+
+
+
+
+

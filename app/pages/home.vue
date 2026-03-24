@@ -19,13 +19,13 @@
               <a href="/home" class="nav-link">首页</a>
             </li>
             <li class="nav-item">
-              <a href="/training" class="nav-link">训练库</a>
+              <a href="/action" class="nav-link">训练库</a>
             </li>
             <li class="nav-item">
-              <a href="/diet" class="nav-link">饮食指南</a>
+              <a href="/eat" class="nav-link">饮食指南</a>
             </li>
             <li class="nav-item">
-              <a href="/data" class="nav-link">数据中心</a>
+              <a href="/challenge" class="nav-link">挑战中心</a>
             </li>
           </ul>
         </nav>
@@ -92,18 +92,7 @@
             </div>
 
             <!-- 体重对比图表 -->
-            <div
-              id="weight-chart"
-              style="width: 100%; height: 400px; min-height: 400px"
-            ></div>
-            <!-- 目标体重 -->
-            <div class="weight-item target-weight">
-              <div class="weight-label">目标体重</div>
-              <div class="weight-value">
-                {{ targetWeight }}<span class="weight-unit">kg</span>
-              </div>
-              <div class="weight-progress">目标</div>
-            </div>
+            <div id="weight-chart" class="chart-container"></div>
           </div>
 
           <!-- 体脂率信息 -->
@@ -113,38 +102,50 @@
               <span class="fat-value">{{ bodyFat }}%</span>
             </div>
           </div>
-        </div>
 
-        <!-- 训练计划卡片区域 -->
-        <div class="training-plans">
-          <h3 class="section-title">训练计划</h3>
-          <div class="plan-cards">
-            <!-- 计划卡片 1 -->
-            <div
-              class="plan-card"
-              v-for="plan in trainingPlans"
-              :key="plan.id"
-              @click="startTrainingPlan(plan.id)"
-            >
-              <div class="plan-header">
-                <div :class="['plan-icon', plan.iconClass]"></div>
-                <div v-if="plan.isNew" class="plan-badge">新</div>
+          <!-- 体重记录管理 -->
+          <div class="weight-records-container">
+            <div class="section-header" @click="isRecordsExpanded = !isRecordsExpanded">
+              <h3>体重记录</h3>
+              <div class="header-actions">
+                <button class="add-btn" @click.stop="openAddWeightRecordModal">
+                  <el-icon size="16"><Plus /></el-icon>
+                  添加记录
+                </button>
+                <button class="expand-btn">
+                  <el-icon size="16"><ArrowDown v-if="isRecordsExpanded" /><ArrowUp v-else /></el-icon>
+                </button>
               </div>
-              <h4 class="plan-name">{{ plan.name }}</h4>
-              <div class="plan-info">
-                <div class="plan-detail">
-                  <span class="detail-label">周期</span>
-                  <span class="detail-value">{{ plan.period }}</span>
-                </div>
-                <div class="plan-detail">
-                  <span class="detail-label">适合人群</span>
-                  <span class="detail-value">{{ plan.targetPeople }}</span>
+            </div>
+            
+            <div v-if="isRecordsExpanded">
+              <div v-if="weightRecords.length === 0" class="no-records">
+                <p>暂无体重记录，点击上方按钮添加</p>
+              </div>
+              
+              <div v-else class="weight-records-list">
+                <div v-for="(record, index) in weightRecords" :key="index" class="record-item">
+                  <div class="record-info">
+                    <div class="record-date">{{ record.date }}</div>
+                    <div class="record-weight">{{ record.weight }} kg</div>
+                  </div>
+                  <div class="record-actions">
+                    <button class="edit-btn" @click="openEditWeightRecordModal(index)">
+                      <el-icon size="14"><Edit /></el-icon>
+                      编辑
+                    </button>
+                    <button class="delete-btn" @click="deleteWeightRecord(index)">
+                      <el-icon size="14"><Delete /></el-icon>
+                      删除
+                    </button>
+                  </div>
                 </div>
               </div>
-              <button class="start-plan-btn">开始计划</button>
             </div>
           </div>
         </div>
+
+
 
         <!-- 快捷功能入口 -->
         <div class="quick-actions">
@@ -190,11 +191,18 @@
           <span class="nav-text">首页</span>
         </div>
 
-        <div class="nav-item">
+        <div class="nav-item" @click="navigateTo('/action')">
           <div class="nav-icon">
-            <el-icon><Search /></el-icon>
+            <el-icon><VideoPlay /></el-icon>
           </div>
-          <span class="nav-text">探索</span>
+          <span class="nav-text">训练</span>
+        </div>
+
+        <div class="nav-item" @click="navigateTo('/eat')">
+          <div class="nav-icon">
+            <el-icon><Food /></el-icon>
+          </div>
+          <span class="nav-text">饮食</span>
         </div>
 
         <div class="nav-item">
@@ -277,11 +285,58 @@
       </div>
     </div>
   </div>
+
+  <!-- 体重记录编辑弹窗 -->
+  <div v-if="isWeightRecordModalVisible" class="modal-overlay" @click="closeWeightRecordModal">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">{{ editingRecord !== null ? '编辑体重记录' : '添加体重记录' }}</h3>
+        <button class="close-btn" @click="closeWeightRecordModal">
+          <el-icon size="20"><Close /></el-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 日期时间输入 -->
+        <div class="form-group">
+          <label for="recordDate" class="form-label">日期时间</label>
+          <input
+            id="recordDate"
+            v-model="newWeightRecord.date"
+            type="datetime-local"
+            class="form-input"
+            placeholder="请选择日期时间"
+          />
+        </div>
+
+        <!-- 体重输入 -->
+        <div class="form-group">
+          <label for="recordWeight" class="form-label">体重 (kg)</label>
+          <input
+            id="recordWeight"
+            v-model.number="newWeightRecord.weight"
+            type="number"
+            step="0.1"
+            min="30"
+            max="200"
+            class="form-input"
+            placeholder="请输入体重"
+          />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="cancel-btn" @click="closeWeightRecordModal">取消</button>
+        <button class="save-btn" @click="saveWeightRecord">保存</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 // 导入必要的函数
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watchEffect } from "vue";
+import { navigateTo } from "nuxt/app";
 // 导入Element Plus图标组件
 import {
   HomeFilled,
@@ -300,6 +355,9 @@ import {
   Close,
   Food,
   ChatLineSquare,
+  Tools,
+  Plus,
+  Delete
 } from "@element-plus/icons-vue";
 // 导入图表组件
 
@@ -314,41 +372,20 @@ const isEditModalVisible = ref(false);
 const editCurrentWeight = ref(68);
 const editTargetWeight = ref(65);
 const editBodyFat = ref(18);
-// 训练计划数据
-const trainingPlans = ref([
-  {
-    id: 1,
-    name: "新手增肌计划",
-    period: "4周",
-    targetPeople: "健身新手",
-    iconClass: "plan-icon-1",
-    isNew: true,
-  },
-  {
-    id: 2,
-    name: "减脂塑形计划",
-    period: "6周",
-    targetPeople: "减脂人群",
-    iconClass: "plan-icon-2",
-    isNew: true,
-  },
-  {
-    id: 3,
-    name: "上肢力量计划",
-    period: "8周",
-    targetPeople: "中级健身者",
-    iconClass: "plan-icon-3",
-    isNew: false,
-  },
-  {
-    id: 4,
-    name: "全身训练计划",
-    period: "12周",
-    targetPeople: "进阶训练者",
-    iconClass: "plan-icon-4",
-    isNew: false,
-  },
-]);
+
+// 体重记录相关状态 - 响应式数据
+const weightRecords = ref([]);
+const isRecordsExpanded = ref(false); // 体重记录折叠状态
+
+// 体重记录编辑弹窗相关状态
+const isWeightRecordModalVisible = ref(false);
+const editingRecord = ref(null);
+const newWeightRecord = ref({
+  date: new Date().toISOString().slice(0, 16), // 默认当前时间，格式为YYYY-MM-DD HH:mm
+  weight: ''
+});
+
+
 
 // 生命周期钩子
 // 在 import 下面已有 onMounted，修改它：
@@ -361,54 +398,92 @@ onMounted(() => {
     if (chartDom) {
       const myChart = window.echarts.init(chartDom);
 
-      // 模拟体重数据（你可以换成真实数据）
-      const weightData = [
-        { date: "2025-12-01", weight: 72.5 },
-        { date: "2025-12-05", weight: 72.0 },
-        { date: "2025-12-10", weight: 71.3 },
-        { date: "2025-12-15", weight: 70.8 },
-        { date: "2025-12-20", weight: 70.2 },
-      ];
-
-      myChart.setOption({
-        title: {
-          text: "体重变化趋势",
-          left: "center",
-          textStyle: { fontSize: 16 },
-        },
-        tooltip: { trigger: "axis" },
-        xAxis: {
-          type: "category",
-          data: weightData.map((item) => item.date),
-          axisLabel: { rotate: 0 },
-        },
-        yAxis: {
-          type: "value",
-          name: "体重 (kg)",
-          min: function (value) {
-            return Math.floor(value.min * 0.95);
+      // 优化图表配置，使用响应式数据
+      const updateChart = () => {
+        // 确保数据按日期排序
+        const sortedRecords = [...weightRecords.value].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        const xAxisData = sortedRecords.map(record => record.date.split(' ')[0]); // 只显示日期部分
+        const seriesData = sortedRecords.map(record => record.weight);
+        
+        return {
+          title: {
+            text: "体重变化趋势",
+            left: "center",
+            textStyle: { fontSize: 16 },
           },
-        },
-        series: [
-          {
-            type: "line",
-            smooth: true,
-            symbol: "circle",
-            symbolSize: 6,
-            lineStyle: { width: 3 },
-            data: weightData.map((item) => item.weight),
+          tooltip: {
+            trigger: "axis",
+            formatter: function (params) {
+              if (params && params.length > 0 && params[0].dataIndex !== undefined) {
+                const record = sortedRecords[params[0].dataIndex];
+                return `${record.date}<br/>体重: ${record.weight}kg`;
+              }
+              return "";
+            }
           },
-        ],
-        grid: {
-          left: "3%",
-          right: "3%",
-          bottom: "10%",
-          containLabel: true,
-        },
-      });
+          xAxis: {
+            type: "category",
+            data: xAxisData,
+            axisLabel: { rotate: 45 },
+          },
+          yAxis: {
+            type: "value",
+            name: "体重 (kg)",
+            min: function (value) {
+              return Math.floor(value.min * 0.95);
+            },
+          },
+          series: [
+            {
+              type: "line",
+              smooth: true,
+              symbol: "circle",
+              symbolSize: 6,
+              lineStyle: { width: 3 },
+              data: seriesData,
+              itemStyle: {
+                color: '#409eff'
+              },
+              areaStyle: {
+                color: {
+                  type: 'linear',
+                  x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [
+                    { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+                    { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
+                  ]
+                }
+              }
+            },
+          ],
+          grid: {
+            left: "3%",
+            right: "3%",
+            bottom: "10%",
+            containLabel: true,
+          },
+        };
+      };
 
-      // 可选：窗口缩放时自适应
+      // 初始化图表
+      myChart.setOption(updateChart());
+
+      // 窗口缩放时自适应
       window.addEventListener("resize", () => myChart.resize());
+      
+      // 监听数据变化，更新图表
+      const unwatch = watchEffect(() => {
+        // 直接使用响应式数据变化触发更新
+        myChart.setOption(updateChart());
+      });
+      
+      // 清理函数
+      onBeforeUnmount(() => {
+        unwatch();
+        window.removeEventListener("resize", () => myChart.resize());
+        myChart.dispose();
+      });
     } else {
       console.error("❌ #weight-chart not found");
     }
@@ -439,7 +514,7 @@ const handleQuickAction = async (actionType) => {
       break;
     case "exerciseCheckin":
       // 跳转到活动页面
-      await navigateTo("/huodong");
+      await navigateTo("/checkin");
       break;
     case "kibpk":
       // 其他功能的处理逻辑可以在这里添加
@@ -538,17 +613,427 @@ const saveWeightData = function () {
   // 关闭弹窗
   isEditModalVisible.value = false;
 };
+
+// 关闭体重记录编辑弹窗
+const closeWeightRecordModal = function () {
+  isWeightRecordModalVisible.value = false;
+};
+// 统一的时间格式化函数
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    // 确保输入格式正确
+    let date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      // 尝试将空格分隔的日期时间转换为ISO格式
+      date = new Date(dateStr.replace(' ', 'T'));
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0'); // 24小时制
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  } catch (error) {
+    console.error('日期时间格式化错误:', error);
+    return dateStr;
+  }
+};
+
+// 将日期时间格式转换为datetime-local输入框格式
+const convertToLocalDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    // 处理现有的YYYY-MM-DD HH:mm格式
+    if (dateStr.includes(' ')) {
+      return dateStr.replace(' ', 'T');
+    }
+    // 处理可能的ISO格式
+    return dateStr;
+  } catch (error) {
+    console.error('日期时间转换错误:', error);
+    return dateStr;
+  }
+};
+
+const openAddWeightRecordModal = () => {
+  editingRecord.value = null;
+  newWeightRecord.value = {
+    date: formatDateTime(new Date()), // 使用统一的格式化函数
+    weight: ''
+  };
+  isWeightRecordModalVisible.value = true;
+};
+
+// 打开编辑体重记录弹窗
+const openEditWeightRecordModal = (index) => {
+  editingRecord.value = index;
+  const record = weightRecords.value[index];
+  // 转换日期格式为datetime-local输入框所需格式
+  newWeightRecord.value = {
+    date: convertToLocalDateTime(record.date),
+    weight: record.weight
+  };
+  isWeightRecordModalVisible.value = true;
+};
+
+// 保存体重记录
+const saveWeightRecord = () => {
+  if (!newWeightRecord.value.date || !newWeightRecord.value.weight) {
+    alert('请填写完整的体重记录信息');
+    return;
+  }
+  
+  const weight = parseFloat(newWeightRecord.value.weight);
+  if (isNaN(weight) || weight < 30 || weight > 200) {
+    alert('请输入有效的体重值（30-200kg）');
+    return;
+  }
+  
+  // 使用统一的格式化函数确保日期时间格式一致
+  const formattedDateTime = formatDateTime(newWeightRecord.value.date);
+  
+  if (editingRecord.value !== null) {
+    // 编辑现有记录
+    weightRecords.value[editingRecord.value] = {
+      date: formattedDateTime,
+      weight: weight
+    };
+  } else {
+    // 添加新记录
+    weightRecords.value.push({
+      date: formattedDateTime,
+      weight: weight
+    });
+  }
+  
+  // 按日期时间排序
+  weightRecords.value.sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  // 更新当前体重为最新记录
+  if (weightRecords.value.length > 0) {
+    const latestRecord = weightRecords.value[weightRecords.value.length - 1];
+    currentWeight.value = latestRecord.weight;
+    // 计算体重变化
+    if (weightRecords.value.length > 1) {
+      const previousRecord = weightRecords.value[weightRecords.value.length - 2];
+      weightChange.value = latestRecord.weight - previousRecord.weight;
+    } else {
+      weightChange.value = 0;
+    }
+  }
+  
+  // 关闭弹窗
+  closeWeightRecordModal();
+};
+
+// 删除体重记录
+const deleteWeightRecord = (index) => {
+  if (confirm('确定要删除这条体重记录吗？')) {
+    weightRecords.value.splice(index, 1);
+    
+    // 更新当前体重为最新记录
+    if (weightRecords.value.length > 0) {
+      const latestRecord = weightRecords.value[weightRecords.value.length - 1];
+      currentWeight.value = latestRecord.weight;
+      // 计算体重变化
+      if (weightRecords.value.length > 1) {
+        const previousRecord = weightRecords.value[weightRecords.value.length - 2];
+        weightChange.value = parseFloat((latestRecord.weight - previousRecord.weight).toFixed(1));
+      } else {
+        weightChange.value = 0;
+      }
+    }
+  }
+};
+
 </script>
 
 <style scoped lang="scss">
-// 全局样式重置
+/* 体重记录管理相关样式 */
+.chart-container {
+  width: 100%;
+  height: 400px;
+  min-height: 400px;
+  margin-bottom: 20px;
+}
+
+.weight-records-container {
+  margin-top: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.section-header:hover {
+  background-color: #f5f7fa;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expand-btn {
+  background: transparent;
+  border: none;
+  color: #606266;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.expand-btn:hover {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.add-btn {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-btn:hover {
+  background-color: #45a049;
+}
+
+.weight-records-list {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.no-records {
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  color: #909399;
+  font-size: 14px;
+}
+
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-info {
+  flex: 1;
+}
+
+.record-date {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.record-weight {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.record-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn, .delete-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.edit-btn {
+  background-color: #2196F3;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #1976D2;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #eee;
+}
+
+.cancel-btn, .save-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.save-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.save-btn:hover {
+  background-color: #45a049;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .record-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .record-actions {
+    align-self: flex-end;
+  }
+}
+
+/* 全局样式重置 */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-// 仪表盘整体容器
+/* 仪表盘整体容器 */
 .dashboard {
   min-height: 100vh;
   background-color: #f5f7fa;
@@ -556,7 +1041,7 @@ const saveWeightData = function () {
   flex-direction: column;
 }
 
-// 顶部导航栏样式
+/* 顶部导航栏样式 */
 .top-nav {
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -572,10 +1057,9 @@ const saveWeightData = function () {
   height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
 }
 
-// Logo样式
+/* Logo样式 */
 .logo {
   display: flex;
   align-items: center;
@@ -595,7 +1079,7 @@ const saveWeightData = function () {
   color: #303133;
 }
 
-// 导航菜单样式
+/* 导航菜单样式 */
 .nav-menu {
   display: flex;
   align-items: center;
@@ -641,7 +1125,7 @@ const saveWeightData = function () {
   border-radius: 1px;
 }
 
-// 导航右侧功能区样式
+/* 导航右侧功能区样式 */
 .nav-actions {
   display: flex;
   align-items: center;
@@ -721,7 +1205,7 @@ const saveWeightData = function () {
   border: 2px solid #409eff;
 }
 
-// 主内容区域样式
+/* 主内容区域样式 */
 .main-content {
   flex: 1;
   padding: 24px 0;
@@ -736,7 +1220,7 @@ const saveWeightData = function () {
   gap: 24px;
 }
 
-// 体重数据卡片样式
+/* 体重数据卡片样式 */
 .weight-card {
   background-color: #ffffff;
   border-radius: 12px;
@@ -906,7 +1390,7 @@ const saveWeightData = function () {
   color: #409eff;
 }
 
-// 训练计划区域样式
+/* 训练计划区域样式 */
 .training-plans {
   background-color: #ffffff;
   border-radius: 12px;
@@ -1036,115 +1520,12 @@ const saveWeightData = function () {
   background-color: #66b1ff;
 }
 
-// 快捷功能入口样式
+/* 快捷功能入口样式 */
 .quick-actions {
   background-color: #ffffff;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-// 弹窗样式
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: #ffffff;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.modal-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0;
-}
-
-.modal-close {
-  background: transparent;
-  border: none;
-  color: #909399;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.modal-close:hover {
-  color: #409eff;
-  background-color: #ecf5ff;
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 8px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #303133;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  transition: border-color 0.3s;
-  outline: none;
-}
-
-.form-input:focus {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
-}
-
-.form-input::placeholder {
-  color: #c0c4cc;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #ebeef5;
-  background-color: #f5f7fa;
-  border-radius: 0 0 12px 12px;
 }
 
 .btn {
@@ -1219,7 +1600,7 @@ const saveWeightData = function () {
   font-weight: 500;
 }
 
-// 底部导航栏样式
+/* 底部导航栏样式 */
 .bottom-nav {
   background-color: #ffffff;
   border-top: 1px solid #ebeef5;
@@ -1229,7 +1610,7 @@ const saveWeightData = function () {
   right: 0;
   z-index: 100;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
-  display: none; // 默认在桌面端隐藏
+  display: none; /* 默认在桌面端隐藏 */
 }
 
 .nav-items {
@@ -1268,7 +1649,7 @@ const saveWeightData = function () {
   font-weight: 500;
 }
 
-// 响应式设计
+/* 响应式设计 */
 @media (max-width: 768px) {
   .nav-container {
     padding: 0 16px;
@@ -1318,7 +1699,7 @@ const saveWeightData = function () {
   }
 
   .main-content {
-    padding-bottom: 72px; // 为底部导航留出空间
+    padding-bottom: 72px; /* 为底部导航留出空间 */
   }
 }
 
@@ -1336,3 +1717,6 @@ const saveWeightData = function () {
   }
 }
 </style>
+
+
+

@@ -1,10 +1,10 @@
 <template>
   <div class="login-container min-w-1200px">
-    <div class="w-50%">
+    <div class="w-1/2">
       <el-image src="/svg/login.svg" alt="登录图标" />
     </div>
 
-    <div class="w-50%">
+    <div class="w-1/2">
       <div>
         <!-- 模式切换标签 -->
         <div class="flex justify-center mb-6">
@@ -21,7 +21,7 @@
             @submit.prevent="handleLogin"
             style="max-width: 80%"
             label-width="180px"
-            class="flex flex-col gap-20px"
+            class="flex flex-col gap-5"
           >
             <el-form-item label="邮箱地址">
               <el-input
@@ -66,7 +66,7 @@
             @submit.prevent="handleRegister"
             style="max-width: 80%"
             label-width="180px"
-            class="flex flex-col gap-20px"
+            class="flex flex-col gap-5"
           >
             <el-form-item label="用户名">
               <el-input
@@ -298,3 +298,6 @@ async function handleRegister() {
   background-blend-mode: overlay; /* 混合模式，让叠加更自然 */
 }
 </style>
+
+
+

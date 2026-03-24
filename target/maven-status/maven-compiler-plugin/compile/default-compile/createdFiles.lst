@@ -1,0 +1,7 @@
+com\gym\place\exception\InvalidCoordinatesException.class
+com\gym\place\PlaceApplication.class
+com\gym\place\config\CorsConfig$1.class
+com\gym\place\config\CorsConfig.class
+com\gym\place\controller\PlaceController.class
+com\gym\place\service\PlaceService.class
+com\gym\place\service\impl\AmapPlaceServiceImpl.class
