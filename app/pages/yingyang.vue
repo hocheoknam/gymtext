@@ -295,7 +295,37 @@
     >
       <el-form :model="formData" label-width="100px" :rules="formRules" ref="formRef">
         <el-form-item label="食物名称" prop="name">
-          <el-input v-model="formData.name" placeholder="请输入食物名称" />
+          <!-- 【替换开始】将原来的 el-input 替换为 el-select -->
+          <el-select
+            v-model="formData.selectedFoodId"
+            filterable
+            remote
+            reserve-keyword
+            placeholder="搜索食物名称（如：鸡蛋）"
+            :remote-method="searchFood"
+            :loading="searchLoading"
+            style="width: 100%;"
+            @change="handleFoodSelect"
+            clearable
+          >
+            <el-option
+              v-for="item in searchResults"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            >
+              <span style="float: left">{{ item.name }}</span>
+              <span style="float: right; color: #8492a6; font-size: 13px">
+                {{ item.calories_per_100g }} kcal/100g
+              </span>
+            </el-option>
+          </el-select>
+          <!-- 【替换结束】 -->
+          
+          <div style="font-size: 12px; color: #909399; margin-top: 5px;">
+            <el-icon><InfoFilled /></el-icon>
+            选择后自动填充营养数据，可手动微调
+          </div>
         </el-form-item>
         <el-form-item label="记录日期">
           <el-date-picker
@@ -317,7 +347,16 @@
           />
         </el-form-item>
         <el-form-item label="分量">
-          <el-input-number v-model="formData.portion" :min="0.1" :max="1000" :step="0.1" style="width: 100px;" />
+          <!-- 在现有的 el-input-number 上添加 @change="onPortionChange" -->
+          <el-input-number
+            v-model="formData.portion"
+            :min="0.1"
+            :max="1000"
+            :step="0.1"
+            style="width: 100px;"
+            @change="onPortionChange"
+          />
+          <!-- 后面的 el-select 单位选择保持不变 -->
           <el-select v-model="formData.unit" placeholder="选择单位" style="margin-left: 10px; width: 120px;">
             <el-option label="克" value="g" />
             <el-option label="毫升" value="ml" />
@@ -356,7 +395,7 @@
 // 导入必要的Vue和Element Plus组件
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, EditPen, Delete, ArrowLeft } from '@element-plus/icons-vue'
+import { Document, EditPen, Delete, ArrowLeft, InfoFilled } from '@element-plus/icons-vue'
 
 // 数据状态管理
 // 食物记录列表
@@ -373,6 +412,11 @@ const formRef = ref(null)
 // 保存状态加载指示器
 const saving = ref(false)
 
+// 新增：搜索相关状态
+const searchResults = ref([])
+const searchLoading = ref(false)
+const allFoodDatabase = ref([]) // 缓存完整食物库
+
 // 表单验证规则
 const formRules = {
   name: [
@@ -387,6 +431,7 @@ const formRules = {
 
 // 表单数据模型
 const formData = ref({
+  selectedFoodId: null, // 【新增】用于绑定下拉框
   name: '',
   date: new Date().toISOString().split('T')[0], // 默认为当前日期 YYYY-MM-DD
   time: new Date().toTimeString().split(':').slice(0, 2).join(':'), // 默认为当前时间 HH:mm
@@ -545,6 +590,7 @@ const nutritionDetails = computed(() => {
 onMounted(() => {
   loadFoodRecords() // 加载食物记录
   loadGoal() // 加载营养目标
+  loadFoodDatabase() // 【新增】加载食物库
 })
 
 // 加载食物记录（从localStorage读取）
@@ -627,6 +673,7 @@ async function saveFood() {
     
     // 重置表单数据
     formData.value = {
+      selectedFoodId: null, // 【新增】重置选中的食物ID
       name: '',
       date: new Date().toISOString().split('T')[0],
       time: new Date().toTimeString().split(':').slice(0, 2).join(':'),
@@ -661,6 +708,83 @@ function deleteFood(id) {
     // 取消删除时不执行任何操作
   });
 }
+
+// --- 新增函数区域开始 ---
+
+// 1. 加载食物数据库
+async function loadFoodDatabase() {
+  try {
+    // 确保这里的 API 路径与您 /eat 页面获取数据的路径一致
+    const res = await $fetch("/api/food-items")
+    const data = (res.data || [])
+    allFoodDatabase.value = data
+    // 初始化显示前10条，或者留空等待搜索
+    searchResults.value = data.slice(0, 10)
+  } catch (err) {
+    console.error("加载食物库失败", err)
+    ElMessage.warning("无法加载食物库，请手动输入营养数据")
+  }
+}
+
+// 2. 搜索方法 (用户输入时触发)
+const searchFood = (query) => {
+  if (query) {
+    searchLoading.value = true
+    setTimeout(() => {
+      searchLoading.value = false
+      // 模糊搜索
+      searchResults.value = allFoodDatabase.value.filter(item => {
+        return item.name.toLowerCase().includes(query.toLowerCase())
+      })
+    }, 200)
+  } else {
+    searchResults.value = []
+  }
+}
+
+// 3. 核心：选中食物后的自动填充
+const handleFoodSelect = (id) => {
+  if (!id) {
+    // 清空选择时重置数据
+    formData.value.name = ''
+    formData.value.calories = 0
+    formData.value.protein = 0
+    formData.value.carbs = 0
+    formData.value.fat = 0
+    return
+  }
+
+  const selectedFood = allFoodDatabase.value.find(item => item.id === id)
+  
+  if (selectedFood) {
+    formData.value.name = selectedFood.name
+    
+    const per100 = {
+      cal: selectedFood.calories_per_100g || 0,
+      pro: selectedFood.protein_per_100g || 0,
+      carb: selectedFood.carbs_per_100g || 0,
+      fat: selectedFood.fat_per_100g || 0
+    }
+
+    // 按分量换算 (假设单位是 g)
+    const ratio = (formData.value.portion || 100) / 100
+    
+    formData.value.calories = Number((per100.cal * ratio).toFixed(1))
+    formData.value.protein = Number((per100.pro * ratio).toFixed(1))
+    formData.value.carbs = Number((per100.carb * ratio).toFixed(1))
+    formData.value.fat = Number((per100.fat * ratio).toFixed(1))
+    
+    ElMessage.success(`已填充 ${selectedFood.name} 数据`)
+  }
+}
+
+// 4. 监听分量变化，动态重算
+const onPortionChange = () => {
+  if (formData.value.selectedFoodId) {
+    handleFoodSelect(formData.value.selectedFoodId)
+  }
+}
+// --- 新增函数区域结束 ---
 
 // 格式化时间显示
 function formatTime(timeStr) {

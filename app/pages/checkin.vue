@@ -478,7 +478,7 @@ export default {
     async getLocationAddressByAmap(latitude, longitude) {
       try {
         // 调用后端Spring Boot服务的API
-        const url = `http://localhost:8080/api/place?lon=${longitude}&lat=${latitude}`;
+        const url = `http://localhost:8081/api/place?lon=${longitude}&lat=${latitude}`;
         
         // 设置超时处理
         const controller = new AbortController();

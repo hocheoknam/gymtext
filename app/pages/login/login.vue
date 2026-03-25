@@ -9,8 +9,8 @@
         <!-- 模式切换标签 -->
         <div class="flex justify-center mb-6">
           <el-radio-group v-model="activeMode" size="large">
-            <el-radio-button label="login">登录</el-radio-button>
-            <el-radio-button label="register">注册</el-radio-button>
+            <el-radio-button value="login">登录</el-radio-button>
+            <el-radio-button value="register">注册</el-radio-button>
           </el-radio-group>
         </div>
 

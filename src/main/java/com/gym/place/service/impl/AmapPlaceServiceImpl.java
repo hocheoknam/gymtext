@@ -170,7 +170,7 @@ public class AmapPlaceServiceImpl implements PlaceService {
                         // 必传：API密钥
                         .queryParam("key", amapKey)
                         // 可选：返回基础地址（base）/完整地址（all）
-                        .queryParam("extensions", "base")
+                        .queryParam("extensions", "all")
                         // 可选：返回格式（默认JSON，无需指定）
                         .queryParam("output", "JSON")
                         .build())

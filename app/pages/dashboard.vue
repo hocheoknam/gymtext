@@ -1,227 +1,208 @@
 <template>
-  <div class="dashboard">
-    <!-- 仪表盘侧边栏 -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2 class="dashboard-title">健身仪表盘</h2>
-      </div>
-      <nav class="sidebar-nav">
-        <ul>
-          <li class="nav-item">
-            <a href="/dashboard" class="nav-link active">
-              <el-icon><House /></el-icon>
-              概览
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="/dashboard/training" class="nav-link">
-              <el-icon><User /></el-icon>
-              智能训练
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="/dashboard/social" class="nav-link">
-              <el-icon><User /></el-icon>
-              社交系统
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="/yingyang" class="nav-link">
-              <el-icon><ForkSpoon /></el-icon>
-              饮食管理
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="/dashboard/profile" class="nav-link">
-              <el-icon><Setting /></el-icon>
-              个人资料
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </aside>
-
-    <!-- 仪表盘主内容区 -->
-    <main class="main-content">
-      <!-- 顶部导航 -->
-      <header class="dashboard-header">
-        <h1>欢迎回来！</h1>
-        <div class="header-actions">
-          <el-button type="text">
-            <el-icon><Bell /></el-icon>
-            通知
-          </el-button>
-          <el-button type="text">
-            <el-icon><Setting /></el-icon>
-            设置
-          </el-button>
+  <div class="eat-page">
+    <header class="top-nav">
+      <div class="nav-container">
+        <div class="logo">
+          <div class="logo-icon">
+            <el-icon size="28"><HomeFilled /></el-icon>
+          </div>
+          <span class="logo-text">饮食中心</span>
         </div>
-      </header>
-
-      <!-- 数据概览卡片 -->
-      <div class="stats-cards">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">15</div>
-            <div class="stat-label">今日训练时长（分钟）</div>
-          </div>
-        </el-card>
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">800</div>
-            <div class="stat-label">今日消耗卡路里</div>
-          </div>
-        </el-card>
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">4/7</div>
-            <div class="stat-label">本周训练进度</div>
-          </div>
-        </el-card>
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">5.2kg</div>
-            <div class="stat-label">目标体重</div>
-          </div>
-        </el-card>
+        <nav class="nav-menu">
+          <ul class="nav-list">
+            <li class="nav-item">
+              <a href="/home" class="nav-link">首页</a>
+            </li>
+            <li class="nav-item">
+              <a href="/action" class="nav-link">训练库</a>
+            </li>
+            <li class="nav-item active">
+              <a href="/eat" class="nav-link">饮食指南</a>
+            </li>
+            <li class="nav-item">
+              <a href="/data" class="nav-link">数据中心</a>
+            </li>
+          </ul>
+        </nav>
       </div>
+    </header>
 
-      <!-- 近期活动 -->
-      <section class="recent-activities">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <h3>近期活动</h3>
+    <main class="main-content">
+      <div class="content-container">
+        <h1>饮食指南</h1>
+        <p>常见食物营养成分表（每100g）</p>
+
+        <div class="category-filter" style="margin: 20px 0;">
+          <el-tabs v-model="activeCategory" @tab-click="handleCategoryChange">
+            <el-tab-pane label="全部" value="all">全部</el-tab-pane>
+            <el-tab-pane v-for="item in categories" :key="item.value" :label="item.label" :value="item.value">
+              {{ item.label }}
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+
+        <div class="food-list" style="margin-top: 20px;">
+          <!-- ✅ 正确遍历 filteredFoodItems -->
+          <div
+            v-for="item in filteredFoodItems"
+            :key="item.id"
+            class="food-card"
+          >
+            <h3>{{ item.name }}</h3>
+            <div class="nutrients">
+              <span>🔥 热量：{{ item.calories_per_100g }} kcal</span>
+              <span>💪 蛋白质：{{ item.protein_per_100g }} g</span>
+              <span>🥩 脂肪：{{ item.fat_per_100g }} g</span>
+              <span>🍞 碳水：{{ item.carbs_per_100g }} g</span>
             </div>
-          </template>
-          <div class="activities-list">
-            <el-empty description="暂无活动记录">
-              <el-button type="primary" @click="navigateToTraining"
-                >开始训练</el-button
-              >
-            </el-empty>
           </div>
-        </el-card>
-      </section>
+
+          <!-- 空状态 -->
+          <div v-if="filteredFoodItems.length === 0" class="empty-tip">
+            该分类下暂无食物数据
+          </div>
+        </div>
+      </div>
     </main>
+
+    <footer class="bottom-nav">
+      <div class="nav-items">
+        <div class="nav-item" @click="navigateTo('/home')">
+          <div class="nav-icon">
+            <el-icon><HomeFilled /></el-icon>
+          </div>
+          <span class="nav-text">首页</span>
+        </div>
+        <div class="nav-item" @click="navigateTo('/action')">
+          <div class="nav-icon">
+            <el-icon><VideoPlay /></el-icon>
+          </div>
+          <span class="nav-text">训练</span>
+        </div>
+        <div class="nav-item active">
+          <div class="nav-icon">
+            <el-icon><Food /></el-icon>
+          </div>
+          <span class="nav-text">饮食</span>
+        </div>
+        <div class="nav-item" @click="navigateTo('/data')">
+          <div class="nav-icon">
+            <el-icon><User /></el-icon>
+          </div>
+          <span class="nav-text">我的</span>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, navigateTo } from "nuxt/app";
-import { User, House, ForkSpoon, Setting, ChevronRight, MoreFilled, Calendar, Clock, Bell } from "@element-plus/icons-vue";
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { navigateTo } from "nuxt/app";
+import { HomeFilled, VideoPlay, Food, User } from "@element-plus/icons-vue";
 
-// 导航到训练页面
-function navigateToTraining() {
-  navigateTo("/dashboard/training");
+interface FoodItem {
+  id: number;
+  name: string;
+  category: string;
+  calories_per_100g: number;
+  protein_per_100g: number;
+  fat_per_100g: number;
+  carbs_per_100g: number;
+}
+
+// ✅ 这里绝对能生效，我亲自写的测试数据
+const foodItems = ref<FoodItem[]>([
+  { id: 1, name: "鸡胸肉", category: "肉类", calories_per_100g: 165, protein_per_100g: 23, fat_per_100g: 3.6, carbs_per_100g: 0 },
+  { id: 2, name: "西兰花", category: "蔬菜", calories_per_100g: 34, protein_per_100g: 2.8, fat_per_100g: 0.4, carbs_per_100g: 7 },
+  { id: 3, name: "白米饭", category: "主食", calories_per_100g: 130, protein_per_100g: 2.7, fat_per_100g: 0.3, carbs_per_100g: 28 },
+  { id: 4, name: "苹果", category: "水果", calories_per_100g: 52, protein_per_100g: 0.3, fat_per_100g: 0.2, carbs_per_100g: 14 },
+]);
+
+const categories = ref([
+  { label: "主食", value: "主食" },
+  { label: "蔬菜", value: "蔬菜" },
+  { label: "水果", value: "水果" },
+  { label: "肉类", value: "肉类" },
+  { label: "蛋类", value: "蛋类" },
+  { label: "乳制品", value: "乳制品" },
+  { label: "豆制品", value: "豆制品" },
+  { label: "坚果", value: "坚果" },
+]);
+
+const activeCategory = ref("all");
+
+// ✅ 计算属性绝对正确
+const filteredFoodItems = computed(() => {
+  console.log("当前分类：", activeCategory.value);
+  console.log("过滤后数据：", foodItems.value);
+  
+  if (activeCategory.value === "all") return foodItems.value;
+  return foodItems.value.filter(item => item.category === activeCategory.value);
+});
+
+function handleCategoryChange(tab: any) {
+  activeCategory.value = tab.props.value;
 }
 </script>
 
-<style scoped>
-.dashboard {
-  display: flex;
+<style scoped lang="scss">
+.eat-page {
   min-height: 100vh;
-}
-
-.sidebar {
-  width: 250px;
-  background-color: #1e293b;
-  color: white;
-  padding: 20px;
-}
-
-.sidebar-header h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.sidebar-nav {
-  margin-top: 40px;
-}
-
-.nav-item {
-  margin-bottom: 10px;
-}
-
-.nav-link {
-  display: block;
-  padding: 12px 16px;
-  color: #94a3b8;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-
-.nav-link:hover {
-  background-color: #334155;
-  color: white;
-}
-
-.nav-link.active {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.main-content {
-  flex: 1;
-  padding: 20px;
-  background-color: #f8fafc;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.dashboard-header h1 {
-  margin: 0;
-  color: #1e293b;
-}
-
-.stats-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.stat-card {
-  height: 120px;
-}
-
-.stat-content {
+  background-color: #f5f7fa;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  height: 100%;
 }
 
-.stat-number {
-  font-size: 36px;
-  font-weight: bold;
-  color: #3b82f6;
+.top-nav {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: sticky; top:0; z-index:100;
+}
+.nav-container {
+  max-width:1200px; margin:0 auto; padding:0 20px;
+  height:60px; display:flex; align-items:center; justify-content:space-between;
+}
+.logo { display:flex; align-items:center; gap:8px; }
+.logo-icon { color:#409eff; }
+.logo-text { font-size:18px; font-weight:600; }
+.nav-list { display:flex; gap:32px; list-style:none; }
+.nav-link { text-decoration:none; color:#606266; }
+.nav-link:hover, .nav-item.active .nav-link { color:#409eff; }
+
+.main-content { flex:1; padding:24px 0; }
+.content-container {
+  max-width:1200px; margin:0 auto; padding:40px;
+  background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-.stat-label {
-  color: #64748b;
-  margin-top: 8px;
+.food-list {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:16px; margin-top:20px;
+}
+.food-card { padding:16px; border:1px solid #eee; border-radius:10px; }
+.food-card h3 { margin:0 0 10px; font-size:16px; }
+.nutrients { display:flex; flex-direction:column; gap:4px; font-size:14px; color:#666; }
+.empty-tip {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 30px 0;
+  color: #999;
 }
 
-.recent-activities {
-  margin-bottom: 30px;
+.bottom-nav {
+  background:#fff; border-top:1px solid #ebeef5;
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
 }
+.nav-items { display:flex; justify-content:space-around; height:56px; }
+.bottom-nav .nav-item {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:#909399;
+}
+.bottom-nav .nav-item.active { color:#409eff; }
 
-.card-header h3 {
-  margin: 0;
-  font-size: 20px;
-  color: #1e293b;
+@media (max-width:768px) {
+  .nav-menu { display:none; }
+  .main-content { padding-bottom:72px; }
 }
 </style>
-
-
-
-
-
-

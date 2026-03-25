@@ -115,42 +115,21 @@ import { navigateTo } from "nuxt/app";
 import { HomeFilled, VideoPlay, Tools, User } from "@element-plus/icons-vue";
 
 const exerciseList = ref([]);
-const activeCategory = ref("all");
-const activeLevel = ref("all");
-const activeEquipment = ref("all");
+const activeCategory = ref("");
+const activeLevel = ref("");
+const activeEquipment = ref("");
 
-// 分类数据
-const categories = ref([
-  { label: "全部", value: "all" },
-  { label: "力量训练", value: "strength" },
-  { label: "有氧运动", value: "cardio" },
-  { label: "柔韧性", value: "flexibility" },
-  { label: "平衡训练", value: "balance" }
-]);
-
-// 难度数据
-const levels = ref([
-  { label: "全部", value: "all" },
-  { label: "初级", value: "beginner" },
-  { label: "中级", value: "intermediate" },
-  { label: "高级", value: "advanced" }
-]);
-
-// 器械数据
-const equipments = ref([
-  { label: "全部", value: "all" },
-  { label: "无器械", value: "bodyweight" },
-  { label: "哑铃", value: "dumbbell" },
-  { label: "杠铃", value: "barbell" },
-  { label: "器械", value: "machine" }
-]);
+// 自动从数据库加载分类、难度、器械
+const categories = ref([{ label: "全部", value: "" }]);
+const levels = ref([{ label: "全部", value: "" }]);
+const equipments = ref([{ label: "全部", value: "" }]);
 
 // 过滤后的训练列表
 const filteredExercises = computed(() => {
   return exerciseList.value.filter(item => {
-    const categoryMatch = activeCategory.value === "all" || item.category === activeCategory.value;
-    const levelMatch = activeLevel.value === "all" || item.level === activeLevel.value;
-    const equipmentMatch = activeEquipment.value === "all" || item.equipment === activeEquipment.value;
+    const categoryMatch = !activeCategory.value || item.category === activeCategory.value;
+    const levelMatch = !activeLevel.value || item.level === activeLevel.value;
+    const equipmentMatch = !activeEquipment.value || item.equipment === activeEquipment.value;
     return categoryMatch && levelMatch && equipmentMatch;
   });
 });
@@ -162,6 +141,31 @@ onMounted(async () => {
     
     if (result.code === 200) {
       exerciseList.value = result.data;
+
+      // 自动提取数据库里的真实分类、难度、器械
+      const categorySet = new Set();
+      const levelSet = new Set();
+      const equipmentSet = new Set();
+
+      exerciseList.value.forEach(item => {
+        if (item.category) categorySet.add(item.category);
+        if (item.level) levelSet.add(item.level);
+        if (item.equipment) equipmentSet.add(item.equipment);
+      });
+
+      // 赋值给下拉框
+      categories.value = [
+        { label: "全部", value: "" },
+        ...Array.from(categorySet).map(c => ({ label: c, value: c }))
+      ];
+      levels.value = [
+        { label: "全部", value: "" },
+        ...Array.from(levelSet).map(l => ({ label: l, value: l }))
+      ];
+      equipments.value = [
+        { label: "全部", value: "" },
+        ...Array.from(equipmentSet).map(e => ({ label: e, value: e }))
+      ];
     }
   } catch (err) {
     console.error("请求失败", err);
