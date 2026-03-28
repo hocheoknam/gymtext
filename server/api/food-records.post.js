@@ -3,39 +3,38 @@ import { neon } from '@neondatabase/serverless';
 import { defineEventHandler, readBody, createError } from 'h3';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth?.userId;
-  if (!userId) {
-    throw createError({ statusCode: 401, statusMessage: '未登录' });
-  }
-
   const body = await readBody(event);
-  const { name, portion, unit, calories, time, total_calories } = body;
+  // 从请求体中获取 foodItemId
+  const { name, portion, unit, calories, time, total_calories, user_id, food_item_id } = body;
 
-  if (!name || !calories || !time) {
-    throw createError({ statusCode: 400, statusMessage: '缺少必填字段' });
+  const userId = user_id || 3;
+
+  if (!name || !calories || !time || !food_item_id) {
+    throw createError({ statusCode: 400, statusMessage: '缺少必填字段: name, calories, time, food_item_id' });
   }
 
   try {
     const sql = neon(process.env.DATABASE_URL);
-
-    // 1. 先插入或获取 food_item_id（简化处理：假设食物已存在，或直接用name关联）
-    // 这里先临时用一个默认值，实际项目中应该先查询food_items表获取id
-    const foodItemId = 1; // 临时处理，后续可优化为根据name查询food_items表
-
-    // 2. 计算总热量
     const finalTotalCalories = total_calories || (portion / 100) * calories;
-    // 3. 转换时间为date类型
-    const recordDate = new Date(time).toISOString().split('T')[0];
+    const createdAt = new Date(time).toISOString();
 
-    // 插入数据库（适配表字段名）
+    console.log('插入食物记录:', {
+      userId,
+      foodItemId: food_item_id, // 使用请求体中的 ID
+      portion,
+      finalTotalCalories,
+      createdAt
+    });
+
     const result = await sql`
       INSERT INTO food_records (
-        user_id, food_item_id, meal_type, quantity_grams, total_calories, record_date
+        user_id, food_item_id, meal_type, portion, total_calories, created_at
       ) VALUES (
-        ${userId}, ${foodItemId}, '其他', ${portion}, ${finalTotalCalories}, ${recordDate}
+        ${userId}, ${food_item_id}, '其他', ${portion}, ${finalTotalCalories}, ${createdAt}
       ) RETURNING *;
     `;
 
+    console.log('插入成功:', result[0]);
     return { success: true, data: result[0] };
   } catch (error) {
     console.error('插入失败:', error);

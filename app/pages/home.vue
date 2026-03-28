@@ -27,38 +27,14 @@
             <li class="nav-item">
               <a href="/challenge" class="nav-link">挑战中心</a>
             </li>
+            <li class="nav-item">
+              <a href="/data" class="nav-link">数据中心</a>
+            </li>
           </ul>
         </nav>
 
         <!-- 右侧功能区 -->
         <div class="nav-actions">
-          <!-- 搜索框 -->
-          <div class="search-box">
-            <input type="text" placeholder="搜索" class="search-input" />
-            <button class="search-btn">
-              <el-icon size="16"><Search /></el-icon>
-            </button>
-          </div>
-
-          <!-- 通知和消息图标 -->
-          <div class="notification-icons">
-            <button class="icon-btn message-btn">
-              <el-icon size="20"><Message /></el-icon>
-            </button>
-            <button class="icon-btn comment-btn">
-              <el-icon size="20"><ChatLineSquare /></el-icon>
-            </button>
-          </div>
-
-          <!-- 用户头像 -->
-          <div class="user-profile">
-            <el-icon size="20"><User /></el-icon>
-          </div>
-
-          <!-- 提醒图标 -->
-          <button class="icon-btn notification-btn">
-            <el-icon size="20"><Bell /></el-icon>
-          </button>
         </div>
       </div>
     </header>
@@ -80,14 +56,14 @@
             <div class="weight-item current-weight">
               <div class="weight-label">当前体重</div>
               <div class="weight-value">
-                {{ currentWeight }}<span class="weight-unit">kg</span>
+                {{ formatNumber(currentWeight) }}<span class="weight-unit">kg</span>
               </div>
               <div
                 class="weight-trend"
                 :class="weightChange < 0 ? 'down' : 'up'"
               >
                 {{ weightChange < 0 ? "↓" : "↑" }}
-                {{ Math.abs(weightChange) }}kg
+                {{ formatNumber(Math.abs(weightChange)) }}kg
               </div>
             </div>
 
@@ -99,7 +75,7 @@
           <div class="body-fat">
             <div class="fat-item">
               <span class="fat-label">体脂率</span>
-              <span class="fat-value">{{ bodyFat }}%</span>
+              <span class="fat-value">{{ formatNumber(bodyFat) }}%</span>
             </div>
           </div>
 
@@ -126,9 +102,10 @@
               <div v-else class="weight-records-list">
                 <div v-for="(record, index) in weightRecords" :key="index" class="record-item">
                   <div class="record-info">
-                    <div class="record-date">{{ record.date }}</div>
-                    <div class="record-weight">{{ record.weight }} kg</div>
-                  </div>
+                <div class="record-date">{{ record.date }}</div>
+                <div class="record-weight">{{ formatNumber(record.weight) }} kg</div>
+                <div class="record-body-fat" v-if="record.bodyFat">体脂率: {{ formatNumber(record.bodyFat) }}%</div>
+              </div>
                   <div class="record-actions">
                     <button class="edit-btn" @click="openEditWeightRecordModal(index)">
                       <el-icon size="14"><Edit /></el-icon>
@@ -323,6 +300,21 @@
             placeholder="请输入体重"
           />
         </div>
+
+        <!-- 体脂率输入 -->
+        <div class="form-group">
+          <label for="recordBodyFat" class="form-label">体脂率 (%)</label>
+          <input
+            id="recordBodyFat"
+            v-model.number="newWeightRecord.bodyFat"
+            type="number"
+            step="0.1"
+            min="5"
+            max="40"
+            class="form-input"
+            placeholder="请输入体脂率"
+          />
+        </div>
       </div>
 
       <div class="modal-footer">
@@ -335,7 +327,7 @@
 
 <script setup>
 // 导入必要的函数
-import { ref, onMounted, watchEffect } from "vue";
+import { ref, onMounted, watchEffect, onBeforeUnmount } from "vue";
 import { navigateTo } from "nuxt/app";
 // 导入Element Plus图标组件
 import {
@@ -380,17 +372,97 @@ const isRecordsExpanded = ref(false); // 体重记录折叠状态
 // 体重记录编辑弹窗相关状态
 const isWeightRecordModalVisible = ref(false);
 const editingRecord = ref(null);
+// 格式化数值，保留最多两位小数，去除末尾的零
+function formatNumber(num) {
+  if (num === null || num === undefined) return '0';
+  const parsed = parseFloat(num);
+  if (isNaN(parsed)) return '0';
+  
+  // 先保留两位小数
+  let formatted = parsed.toFixed(2);
+  
+  // 去除末尾的零
+  if (formatted.includes('.')) {
+    formatted = formatted.replace(/\.?0+$/, '');
+  }
+  
+  return formatted;
+}
+
+// 直接使用当前时间的本地格式，避免时区问题
+const now = new Date();
+const year = now.getFullYear();
+const month = String(now.getMonth() + 1).padStart(2, '0');
+const day = String(now.getDate()).padStart(2, '0');
+const hours = String(now.getHours()).padStart(2, '0');
+const minutes = String(now.getMinutes()).padStart(2, '0');
 const newWeightRecord = ref({
-  date: new Date().toISOString().slice(0, 16), // 默认当前时间，格式为YYYY-MM-DD HH:mm
-  weight: ''
+  date: `${year}-${month}-${day} ${hours}:${minutes}`, // 默认当前时间，格式为YYYY-MM-DD HH:mm
+  weight: '',
+  bodyFat: ''
 });
 
 
 
 // 生命周期钩子
 // 在 import 下面已有 onMounted，修改它：
-onMounted(() => {
+onMounted(async () => {
   console.log("健身仪表盘页面已加载");
+
+  // 从API获取体重和体脂率数据
+  try {
+    // 从localStorage获取用户ID
+    let currentUserId = null;
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // 解析Token
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      } catch (error) {
+        console.error('解析Token失败:', error);
+      }
+    }
+    // 如果没有Token或解析失败，使用默认用户ID 3
+    if (!currentUserId) {
+      currentUserId = 3;
+    }
+    
+    const response = await fetch(`/api/body-metrics?user_id=${currentUserId}`);
+    const data = await response.json();
+    
+    if (data.code === 200 && data.data && data.data.length > 0) {
+      console.log('体重数据:', data.data);
+      
+      // 处理数据
+      const sortedData = [...data.data].sort((a, b) => new Date(b.measurement_date) - new Date(a.measurement_date));
+      
+      // 更新当前体重和体脂率（使用最新的记录）
+      const latestRecord = sortedData[0];
+      currentWeight.value = latestRecord.weight;
+      bodyFat.value = latestRecord.body_fat;
+      
+      // 计算体重变化
+      if (sortedData.length > 1) {
+        const previousRecord = sortedData[1];
+        weightChange.value = latestRecord.weight - previousRecord.weight;
+      } else {
+        weightChange.value = 0;
+      }
+      
+      // 更新体重记录
+      weightRecords.value = sortedData.map(record => ({
+        id: record.id,
+        date: formatDateTime(record.measurement_date),
+        weight: record.weight,
+        bodyFat: record.body_fat
+      }));
+    } else {
+      console.log('暂无体重数据');
+    }
+  } catch (error) {
+    console.error('获取体重数据失败:', error);
+  }
 
   // ✅ 新增：初始化 ECharts
   if (typeof window !== "undefined" && window.echarts) {
@@ -403,8 +475,8 @@ onMounted(() => {
         // 确保数据按日期排序
         const sortedRecords = [...weightRecords.value].sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        const xAxisData = sortedRecords.map(record => record.date.split(' ')[0]); // 只显示日期部分
-        const seriesData = sortedRecords.map(record => record.weight);
+        const xAxisData = sortedRecords.map(record => record.date); // 显示完整的日期和时间
+        const seriesData = sortedRecords.map(record => parseFloat(record.weight));
         
         return {
           title: {
@@ -417,7 +489,7 @@ onMounted(() => {
             formatter: function (params) {
               if (params && params.length > 0 && params[0].dataIndex !== undefined) {
                 const record = sortedRecords[params[0].dataIndex];
-                return `${record.date}<br/>体重: ${record.weight}kg`;
+                return `${record.date}<br/>体重: ${formatNumber(record.weight)}kg`;
               }
               return "";
             }
@@ -563,7 +635,7 @@ const closeEditModal = function () {
 };
 
 // 保存体重数据修改
-const saveWeightData = function () {
+const saveWeightData = async function () {
   // 数据验证
   var isValid = true;
   var errorMessage = "";
@@ -612,6 +684,55 @@ const saveWeightData = function () {
 
   // 关闭弹窗
   isEditModalVisible.value = false;
+  
+  // 从localStorage获取用户ID
+  let currentUserId = null;
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      // 解析Token
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+    } catch (error) {
+      console.error('解析Token失败:', error);
+    }
+  }
+  // 如果没有Token或解析失败，使用默认用户ID 3
+  if (!currentUserId) {
+    currentUserId = 3;
+  }
+  
+  try {
+    // 发送POST请求到API
+    const response = await fetch('/api/body-metrics', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: currentUserId,
+        weight_kg: editCurrentWeight.value,
+        body_fat: editBodyFat.value,
+        measurement_date: new Date().toISOString()
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      // 重新获取数据以更新图表和UI
+      await fetchBodyMetrics();
+      
+      // 显示成功消息
+      alert('体重数据保存成功！');
+    } else {
+      // 显示错误消息
+      alert('保存失败: ' + (data.message || '未知错误'));
+    }
+  } catch (error) {
+    console.error('保存体重数据失败:', error);
+    alert('保存失败: 网络错误，请稍后再试');
+  }
 };
 
 // 关闭体重记录编辑弹窗
@@ -628,11 +749,14 @@ const formatDateTime = (dateStr) => {
       // 尝试将空格分隔的日期时间转换为ISO格式
       date = new Date(dateStr.replace(' ', 'T'));
     }
+    
+    // 使用UTC方法获取时间，避免时区偏移
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0'); // 24小时制
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0'); // 24小时制
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   } catch (error) {
     console.error('日期时间格式化错误:', error);
@@ -658,8 +782,15 @@ const convertToLocalDateTime = (dateStr) => {
 
 const openAddWeightRecordModal = () => {
   editingRecord.value = null;
+  // 直接使用当前时间的ISO格式，避免时区问题
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
   newWeightRecord.value = {
-    date: formatDateTime(new Date()), // 使用统一的格式化函数
+    date: `${year}-${month}-${day} ${hours}:${minutes}`,
     weight: ''
   };
   isWeightRecordModalVisible.value = true;
@@ -672,13 +803,71 @@ const openEditWeightRecordModal = (index) => {
   // 转换日期格式为datetime-local输入框所需格式
   newWeightRecord.value = {
     date: convertToLocalDateTime(record.date),
-    weight: record.weight
+    weight: record.weight,
+    bodyFat: record.bodyFat || ''
   };
   isWeightRecordModalVisible.value = true;
 };
 
+// 获取体重和体脂率数据
+const fetchBodyMetrics = async () => {
+  try {
+    // 从localStorage获取用户ID
+    let currentUserId = null;
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // 解析Token
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      } catch (error) {
+        console.error('解析Token失败:', error);
+      }
+    }
+    // 如果没有Token或解析失败，使用默认用户ID 3
+    if (!currentUserId) {
+      currentUserId = 3;
+    }
+    
+    const response = await fetch(`/api/body-metrics?user_id=${currentUserId}`);
+    const data = await response.json();
+    
+    if (data.code === 200 && data.data && data.data.length > 0) {
+      console.log('体重数据:', data.data);
+      
+      // 处理数据
+      const sortedData = [...data.data].sort((a, b) => new Date(b.measurement_date) - new Date(a.measurement_date));
+      
+      // 更新当前体重和体脂率（使用最新的记录）
+      const latestRecord = sortedData[0];
+      currentWeight.value = latestRecord.weight;
+      bodyFat.value = latestRecord.body_fat;
+      
+      // 计算体重变化
+      if (sortedData.length > 1) {
+        const previousRecord = sortedData[1];
+        weightChange.value = latestRecord.weight - previousRecord.weight;
+      } else {
+        weightChange.value = 0;
+      }
+      
+      // 更新体重记录
+      weightRecords.value = sortedData.map(record => ({
+        id: record.id,
+        date: formatDateTime(record.measurement_date),
+        weight: record.weight,
+        bodyFat: record.body_fat
+      }));
+    } else {
+      console.log('暂无体重数据');
+    }
+  } catch (error) {
+    console.error('获取体重数据失败:', error);
+  }
+};
+
 // 保存体重记录
-const saveWeightRecord = () => {
+const saveWeightRecord = async () => {
   if (!newWeightRecord.value.date || !newWeightRecord.value.weight) {
     alert('请填写完整的体重记录信息');
     return;
@@ -693,56 +882,123 @@ const saveWeightRecord = () => {
   // 使用统一的格式化函数确保日期时间格式一致
   const formattedDateTime = formatDateTime(newWeightRecord.value.date);
   
-  if (editingRecord.value !== null) {
-    // 编辑现有记录
-    weightRecords.value[editingRecord.value] = {
-      date: formattedDateTime,
-      weight: weight
-    };
-  } else {
-    // 添加新记录
-    weightRecords.value.push({
-      date: formattedDateTime,
-      weight: weight
-    });
-  }
-  
-  // 按日期时间排序
-  weightRecords.value.sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-  // 更新当前体重为最新记录
-  if (weightRecords.value.length > 0) {
-    const latestRecord = weightRecords.value[weightRecords.value.length - 1];
-    currentWeight.value = latestRecord.weight;
-    // 计算体重变化
-    if (weightRecords.value.length > 1) {
-      const previousRecord = weightRecords.value[weightRecords.value.length - 2];
-      weightChange.value = latestRecord.weight - previousRecord.weight;
-    } else {
-      weightChange.value = 0;
+  // 从localStorage获取用户ID
+  let currentUserId = null;
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      // 解析Token
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+    } catch (error) {
+      console.error('解析Token失败:', error);
     }
   }
+  // 如果没有Token或解析失败，使用默认用户ID 3
+  if (!currentUserId) {
+    currentUserId = 3;
+  }
   
-  // 关闭弹窗
-  closeWeightRecordModal();
+  try {
+    // 发送POST请求到API
+    const response = await fetch('/api/body-metrics', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: currentUserId,
+        weight_kg: weight,
+        body_fat: newWeightRecord.value.bodyFat || bodyFat.value, // 使用弹窗中输入的体脂率，如果没有则使用当前体脂率
+        measurement_date: newWeightRecord.value.date
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      // API调用成功，更新本地数据
+      if (editingRecord.value !== null) {
+        // 编辑现有记录
+        weightRecords.value[editingRecord.value] = {
+          date: formattedDateTime,
+          weight: weight,
+          bodyFat: newWeightRecord.value.bodyFat || bodyFat.value
+        };
+      } else {
+        // 添加新记录
+        weightRecords.value.push({
+          date: formattedDateTime,
+          weight: weight,
+          bodyFat: newWeightRecord.value.bodyFat || bodyFat.value
+        });
+      }
+      
+      // 关闭弹窗
+      closeWeightRecordModal();
+      
+      // 重新获取数据以更新图表和UI
+      await fetchBodyMetrics();
+      
+      // 显示成功消息
+      alert('体重记录保存成功！');
+    } else {
+      // 显示错误消息
+      alert('保存失败: ' + (data.message || '未知错误'));
+    }
+  } catch (error) {
+    console.error('保存体重记录失败:', error);
+    alert('保存失败: 网络错误，请稍后再试');
+  }
 };
 
 // 删除体重记录
-const deleteWeightRecord = (index) => {
+const deleteWeightRecord = async (index) => {
   if (confirm('确定要删除这条体重记录吗？')) {
-    weightRecords.value.splice(index, 1);
-    
-    // 更新当前体重为最新记录
-    if (weightRecords.value.length > 0) {
-      const latestRecord = weightRecords.value[weightRecords.value.length - 1];
-      currentWeight.value = latestRecord.weight;
-      // 计算体重变化
-      if (weightRecords.value.length > 1) {
-        const previousRecord = weightRecords.value[weightRecords.value.length - 2];
-        weightChange.value = parseFloat((latestRecord.weight - previousRecord.weight).toFixed(1));
-      } else {
-        weightChange.value = 0;
+    try {
+      const record = weightRecords.value[index];
+      
+      // 发送DELETE请求到API
+      if (record.id) {
+        const response = await fetch('/api/body-metrics', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: record.id
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.code !== 200) {
+          alert('删除失败: ' + (data.message || '未知错误'));
+          return;
+        }
       }
+      
+      // 删除本地记录
+      weightRecords.value.splice(index, 1);
+      
+      // 更新当前体重为最新记录
+      if (weightRecords.value.length > 0) {
+        const latestRecord = weightRecords.value[weightRecords.value.length - 1];
+        currentWeight.value = latestRecord.weight;
+        // 计算体重变化
+        if (weightRecords.value.length > 1) {
+          const previousRecord = weightRecords.value[weightRecords.value.length - 2];
+          weightChange.value = parseFloat((latestRecord.weight - previousRecord.weight).toFixed(1));
+        } else {
+          weightChange.value = 0;
+        }
+      }
+      
+      // 显示成功消息
+      alert('体重记录删除成功！');
+    } catch (error) {
+      console.error('删除体重记录失败:', error);
+      alert('删除失败: 网络错误，请稍后再试');
     }
   }
 };
@@ -863,6 +1119,12 @@ const deleteWeightRecord = (index) => {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.record-body-fat {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .record-actions {

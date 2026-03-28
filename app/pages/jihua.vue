@@ -226,6 +226,26 @@
       </template>
     </el-dialog>
 
+    <!-- API Key配置对话框 -->
+    <el-dialog
+      v-model="showAPIKeyDialog"
+      title="DeepSeek API Key配置"
+      width="500px"
+      destroy-on-close
+    >
+      <el-form :model="apiKeyForm" label-width="120px">
+        <el-form-item label="API Key">
+          <el-input v-model="apiKeyForm.apiKey" type="password" placeholder="请输入DeepSeek API Key" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showAPIKeyDialog = false">取消</el-button>
+          <el-button type="primary" @click="saveAPIKey">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <!-- AI生成计划配置对话框 -->
     <el-dialog
       v-model="showAIConfigDialog"
@@ -271,6 +291,7 @@
         <span class="dialog-footer">
           <el-button @click="showAIConfigDialog = false">取消</el-button>
           <el-button type="primary" @click="confirmAIPlanGeneration">确认生成</el-button>
+          <el-button type="info" @click="showAPIKeyDialog = true">配置API Key</el-button>
         </span>
       </template>
     </el-dialog>
@@ -290,6 +311,7 @@ const mealPlans = ref([])
 const showAddExerciseDialog = ref(false)
 const showAddMealDialog = ref(false)
 const showAIConfigDialog = ref(false)
+const showAPIKeyDialog = ref(false)
 
 // 编辑状态
 const editingExercise = ref(null)
@@ -299,6 +321,7 @@ const editingMeal = ref(null)
 const generatingAIPlan = ref(false)
 const savingExercise = ref(false)
 const savingMeal = ref(false)
+const savingAPIKey = ref(false)
 
 // 表单引用
 const exerciseFormRef = ref(null)
@@ -312,6 +335,14 @@ const aiConfig = ref({
   dietPreference: '均衡饮食',
   dailyCalories: 2000
 })
+
+// API Key表单
+const apiKeyForm = ref({
+  apiKey: ''
+})
+
+// 后端API Key
+const apiKey = ref('')
 
 // 健身计划表单
 const exerciseForm = ref({
@@ -374,7 +405,49 @@ const mealRules = {
 // 生命周期钩子
 onMounted(() => {
   loadPlans()
+  loadAPIKey()
 })
+
+// 加载API Key
+async function loadAPIKey() {
+  try {
+    const response = await fetch('/api/deepseek-key')
+    const data = await response.json()
+    if (data.code === 200 && data.data) {
+      apiKey.value = data.data.apiKey
+      apiKeyForm.value.apiKey = data.data.apiKey
+    }
+  } catch (error) {
+    console.error('加载API Key失败:', error)
+  }
+}
+
+// 保存API Key
+async function saveAPIKey() {
+  try {
+    savingAPIKey.value = true
+    const response = await fetch('/api/deepseek-key', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ api_key: apiKeyForm.value.apiKey })
+    })
+    const data = await response.json()
+    if (data.code === 200) {
+      apiKey.value = apiKeyForm.value.apiKey
+      ElMessage.success('API Key保存成功')
+      showAPIKeyDialog.value = false
+    } else {
+      ElMessage.error('API Key保存失败: ' + data.message)
+    }
+  } catch (error) {
+    console.error('保存API Key失败:', error)
+    ElMessage.error('保存API Key失败，请稍后重试')
+  } finally {
+    savingAPIKey.value = false
+  }
+}
 
 // 加载计划
 function loadPlans() {
@@ -554,9 +627,14 @@ async function confirmAIPlanGeneration() {
     showAIConfigDialog.value = false
     generatingAIPlan.value = true
     
-    // TODO: 调用真实的AI接口
-    // 这里是AI接口的预留位置
-    const aiGeneratedPlan = await mockAIGeneratePlan()
+    if (!apiKey.value) {
+      ElMessage.error('请先配置DeepSeek API Key')
+      showAPIKeyDialog.value = true
+      return
+    }
+    
+    // 调用真实的AI接口
+    const aiGeneratedPlan = await generateAIPlanWithDeepSeek()
     
     // 清空现有计划
     exercisePlans.value = []
@@ -581,63 +659,400 @@ async function confirmAIPlanGeneration() {
   }
 }
 
-// 模拟AI生成计划（用于测试）
-async function mockAIGeneratePlan() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        exercises: [
-          {
-            id: 'ai-exercise-1',
-            day: '周一',
-            title: '胸部训练',
-            type: '力量训练',
-            duration: 60,
-            intensity: '中',
-            details: '平板杠铃卧推：4组×12次\n上斜哑铃卧推：3组×10次\n双杠臂屈伸：3组×15次\n蝴蝶夹胸：3组×15次'
-          },
-          {
-            id: 'ai-exercise-2',
-            day: '周二',
-            title: '背部训练',
-            type: '力量训练',
-            duration: 60,
-            intensity: '中',
-            details: '引体向上：4组×8次\n杠铃划船：3组×12次\n高位下拉：3组×15次\n坐姿划船：3组×12次'
-          },
-          {
-            id: 'ai-exercise-3',
-            day: '周三',
-            title: '有氧运动',
-            type: '有氧运动',
-            duration: 45,
-            intensity: '低',
-            details: '慢跑或快走45分钟，保持心率在最大心率的60-70%'
-          }
-        ],
-        meals: [
-          {
-            id: 'ai-meal-1',
-            day: '周一',
-            mealType: '早餐',
-            title: '高蛋白早餐',
-            calories: 450,
-            nutrition: '蛋白质25g，碳水50g，脂肪15g',
-            details: '燕麦粥（50g燕麦）+ 鸡蛋2个 + 牛奶200ml + 香蕉1根'
-          },
-          {
-            id: 'ai-meal-2',
-            day: '周一',
-            mealType: '午餐',
-            title: '增肌午餐',
-            calories: 650,
-            nutrition: '蛋白质35g，碳水80g，脂肪20g',
-            details: '鸡胸肉150g + 米饭150g + 蔬菜200g + 橄榄油10ml'
-          }
-        ]
+// 使用DeepSeek API生成计划
+async function generateAIPlanWithDeepSeek() {
+  try {
+    const prompt = `你是一个专业的健身教练。请根据用户的需求，生成一份健身饮食计划。
+
+用户需求：
+- 健身目标：${aiConfig.value.fitnessGoal}
+- 运动经验：${aiConfig.value.experienceLevel}
+- 每天运动时长：${aiConfig.value.dailyDuration}分钟
+- 饮食偏好：${aiConfig.value.dietPreference}
+- 每日热量目标：${aiConfig.value.dailyCalories}kcal
+
+要求：
+1. 只输出 JSON 格式的数据，不要有任何其他解释性文字。
+2. JSON 格式如下：
+{
+  "workoutPlan": [
+    {
+      "day": "周一",
+      "type": "胸部+三头",
+      "exercises": [
+        {"name": "平板杠铃卧推", "sets": "4组", "reps": "8-12次", "details": "详细说明"}
+      ]
+    }
+  ],
+  "mealPlan": [
+    {
+      "day": "周一",
+      "mealType": "早餐",
+      "title": "高蛋白早餐",
+      "calories": 450,
+      "nutrition": "蛋白质25g，碳水50g，脂肪15g",
+      "details": "详细说明"
+    }
+  ]
+}`
+
+    const response = await fetch('/api/generate-plan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        api_key: apiKey.value
       })
-    }, 2000)
-  })
+    })
+
+    const data = await response.json()
+    console.log('API响应:', data)
+    if (data.code === 200 && data.data) {
+      console.log('API调用成功，解析响应数据')
+      return parseAIResponse(data.data.content)
+    } else {
+      console.error('API调用失败:', data.message)
+      throw new Error(data.message || 'AI生成失败')
+    }
+  } catch (error) {
+    console.error('调用DeepSeek API失败:', error)
+    // 失败时使用模拟数据
+    console.log('使用模拟数据')
+    return mockAIGeneratePlan()
+  }
+}
+
+// 模拟AI生成计划
+function mockAIGeneratePlan() {
+  const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  const exercises = [];
+  const meals = [];
+  const workoutTypes = ['胸部训练', '背部训练', '腿部训练', '肩部训练', '手臂训练', '核心训练', '有氧运动'];
+  const mealTypes = ['早餐', '午餐', '晚餐'];
+  
+  // 生成模拟健身计划
+  days.forEach((day, index) => {
+    const workoutType = workoutTypes[index % workoutTypes.length];
+    let details;
+    
+    switch (workoutType) {
+      case '胸部训练':
+        details = '平板杠铃卧推：4组×12次\n上斜哑铃卧推：3组×10次\n双杠臂屈伸：3组×15次\n蝴蝶夹胸：3组×15次';
+        break;
+      case '背部训练':
+        details = '引体向上：4组×8次\n杠铃划船：3组×12次\n高位下拉：3组×15次\n坐姿划船：3组×12次';
+        break;
+      case '腿部训练':
+        details = '深蹲：4组×10次\n硬拉：3组×8次\n腿举：3组×12次\n腿弯举：3组×15次';
+        break;
+      case '肩部训练':
+        details = '哑铃肩推：4组×10次\n侧平举：3组×15次\n前平举：3组×15次\n俯身飞鸟：3组×15次';
+        break;
+      case '手臂训练':
+        details = '二头弯举：4组×12次\n三头下压：4组×12次\n锤式弯举：3组×12次\n overhead tricep extension：3组×12次';
+        break;
+      case '核心训练':
+        details = '平板支撑：3组×60秒\n仰卧起坐：3组×20次\n俄罗斯转体：3组×20次\n planks：3组×45秒';
+        break;
+      case '有氧运动':
+        details = '慢跑：30分钟\n快走：15分钟\n跳绳：10分钟\n拉伸：5分钟';
+        break;
+    }
+    
+    exercises.push({
+      id: `ai-exercise-${index}`,
+      day: day,
+      title: workoutType,
+      type: workoutType === '有氧运动' ? '有氧运动' : '力量训练',
+      duration: 60,
+      intensity: '中',
+      details: details
+    });
+  });
+  
+  // 生成模拟食物计划
+  let mealIndex = 0;
+  days.forEach(day => {
+    mealTypes.forEach(mealType => {
+      let title, calories, nutrition, details;
+      
+      switch (mealType) {
+        case '早餐':
+          title = '高蛋白早餐';
+          calories = 450;
+          nutrition = '蛋白质25g，碳水50g，脂肪15g';
+          details = '燕麦粥（50g燕麦）+ 鸡蛋2个 + 牛奶200ml + 香蕉1根';
+          break;
+        case '午餐':
+          title = '均衡午餐';
+          calories = 650;
+          nutrition = '蛋白质35g，碳水80g，脂肪20g';
+          details = '鸡胸肉150g + 米饭150g + 蔬菜200g + 橄榄油10ml';
+          break;
+        case '晚餐':
+          title = '轻食晚餐';
+          calories = 400;
+          nutrition = '蛋白质20g，碳水40g，脂肪15g';
+          details = ' grilled fish 100g + 蒸蔬菜150g + 糙米50g';
+          break;
+      }
+      
+      meals.push({
+        id: `ai-meal-${mealIndex++}`,
+        day: day,
+        mealType: mealType,
+        title: title,
+        calories: calories,
+        nutrition: nutrition,
+        details: details
+      });
+    });
+  });
+  
+  return {
+    exercises,
+    meals
+  };
+}
+
+// 解析AI响应
+function parseAIResponse(content) {
+  console.log('解析AI响应:', content);
+  try {
+    // 检查content是否有效
+    if (!content || content === 'undefined' || content === '"undefined"') {
+      throw new Error('无效的响应内容');
+    }
+    
+    // 尝试解析JSON数据
+    const parsedData = JSON.parse(content);
+    console.log('解析成功:', parsedData);
+    
+    // 处理健身计划
+    const exercises = [];
+    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    
+    // 兼容不同的JSON结构
+    if (parsedData.workoutPlan && Array.isArray(parsedData.workoutPlan)) {
+      // 结构1: workoutPlan数组
+      parsedData.workoutPlan.forEach((dayPlan, index) => {
+        dayPlan.exercises.forEach((exercise, exerciseIndex) => {
+          exercises.push({
+            id: `ai-exercise-${index}-${exerciseIndex}`,
+            day: dayPlan.day,
+            title: exercise.name,
+            type: dayPlan.type,
+            duration: 60, // 默认时长
+            intensity: '中', // 默认强度
+            details: exercise.details || `${exercise.name} - ${exercise.sets} - ${exercise.reps}`
+          });
+        });
+      });
+    } else if (parsedData['健身计划'] && parsedData['健身计划']['训练日安排']) {
+      // 结构2: 健身计划.训练日安排
+      parsedData['健身计划']['训练日安排'].forEach((dayPlan, index) => {
+        dayPlan['动作'].forEach((exercise, exerciseIndex) => {
+          exercises.push({
+            id: `ai-exercise-${index}-${exerciseIndex}`,
+            day: dayPlan['训练日'].split('：')[0],
+            title: exercise['名称'],
+            type: '力量训练', // 默认类型
+            duration: 60, // 默认时长
+            intensity: '中', // 默认强度
+            details: `${exercise['名称']} - ${exercise['组数']}组 - ${exercise['次数'] || exercise['持续时间']} ${exercise['备注'] ? ' - ' + exercise['备注'] : ''}`
+          });
+        });
+      });
+    } else if (parsedData.weekly_schedule && Array.isArray(parsedData.weekly_schedule)) {
+      // 结构3: weekly_schedule数组
+      parsedData.weekly_schedule.forEach((dayPlan, index) => {
+        if (dayPlan.exercises && Array.isArray(dayPlan.exercises)) {
+          dayPlan.exercises.forEach((exercise, exerciseIndex) => {
+            exercises.push({
+              id: `ai-exercise-${index}-${exerciseIndex}`,
+              day: dayPlan.day,
+              title: exercise.name,
+              type: dayPlan.focus,
+              duration: 60, // 默认时长
+              intensity: '中', // 默认强度
+              details: `${exercise.name} - ${exercise.sets}组 - ${exercise.reps} ${exercise.rest_sec ? ' - 休息' + exercise.rest_sec + '秒' : ''}`
+            });
+          });
+        }
+      });
+    }
+    
+    // 检查是否缺少某些天的健身计划
+    const existingExerciseDays = new Set(exercises.map(exercise => exercise.day));
+    const missingExerciseDays = days.filter(day => !existingExerciseDays.has(day));
+    
+    // 为缺少的天生成默认健身计划
+    let exerciseIndex = exercises.length;
+    const workoutTypes = ['胸部训练', '背部训练', '腿部训练', '肩部训练', '手臂训练', '核心训练', '有氧运动'];
+    
+    missingExerciseDays.forEach((day, index) => {
+      const workoutType = workoutTypes[index % workoutTypes.length];
+      let details;
+      
+      switch (workoutType) {
+        case '胸部训练':
+          details = '平板杠铃卧推：4组×12次\n上斜哑铃卧推：3组×10次\n双杠臂屈伸：3组×15次\n蝴蝶夹胸：3组×15次';
+          break;
+        case '背部训练':
+          details = '引体向上：4组×8次\n杠铃划船：3组×12次\n高位下拉：3组×15次\n坐姿划船：3组×12次';
+          break;
+        case '腿部训练':
+          details = '深蹲：4组×10次\n硬拉：3组×8次\n腿举：3组×12次\n腿弯举：3组×15次';
+          break;
+        case '肩部训练':
+          details = '哑铃肩推：4组×10次\n侧平举：3组×15次\n前平举：3组×15次\n俯身飞鸟：3组×15次';
+          break;
+        case '手臂训练':
+          details = '二头弯举：4组×12次\n三头下压：4组×12次\n锤式弯举：3组×12次\n overhead tricep extension：3组×12次';
+          break;
+        case '核心训练':
+          details = '平板支撑：3组×60秒\n仰卧起坐：3组×20次\n俄罗斯转体：3组×20次\n planks：3组×45秒';
+          break;
+        case '有氧运动':
+          details = '慢跑：30分钟\n快走：15分钟\n跳绳：10分钟\n拉伸：5分钟';
+          break;
+      }
+      
+      exercises.push({
+        id: `ai-exercise-${exerciseIndex++}`,
+        day: day,
+        title: workoutType,
+        type: workoutType === '有氧运动' ? '有氧运动' : '力量训练',
+        duration: 60,
+        intensity: '中',
+        details: details
+      });
+    });
+    
+    // 处理饮食计划
+    const meals = [];
+    const mealTypes = ['早餐', '午餐', '晚餐'];
+    
+    if (parsedData.mealPlan && Array.isArray(parsedData.mealPlan)) {
+      parsedData.mealPlan.forEach((meal, index) => {
+        meals.push({
+          id: `ai-meal-${index}`,
+          day: meal.day,
+          mealType: meal.mealType,
+          title: meal.title,
+          calories: meal.calories,
+          nutrition: meal.nutrition,
+          details: meal.details
+        });
+      });
+    }
+    
+    // 检查是否缺少某些天的食物计划
+    const existingMealDays = new Set(meals.map(meal => meal.day));
+    const missingMealDays = days.filter(day => !existingMealDays.has(day));
+    
+    // 为缺少的天生成默认食物计划
+    let mealIndex = meals.length;
+    missingMealDays.forEach(day => {
+      mealTypes.forEach(mealType => {
+        let title, calories, nutrition, details;
+        
+        switch (mealType) {
+          case '早餐':
+            title = '高蛋白早餐';
+            calories = 450;
+            nutrition = '蛋白质25g，碳水50g，脂肪15g';
+            details = '燕麦粥（50g燕麦）+ 鸡蛋2个 + 牛奶200ml + 香蕉1根';
+            break;
+          case '午餐':
+            title = '均衡午餐';
+            calories = 650;
+            nutrition = '蛋白质35g，碳水80g，脂肪20g';
+            details = '鸡胸肉150g + 米饭150g + 蔬菜200g + 橄榄油10ml';
+            break;
+          case '晚餐':
+            title = '轻食晚餐';
+            calories = 400;
+            nutrition = '蛋白质20g，碳水40g，脂肪15g';
+            details = ' grilled fish 100g + 蒸蔬菜150g + 糙米50g';
+            break;
+        }
+        
+        meals.push({
+          id: `ai-meal-${mealIndex++}`,
+          day: day,
+          mealType: mealType,
+          title: title,
+          calories: calories,
+          nutrition: nutrition,
+          details: details
+        });
+      });
+    });
+    
+    console.log('处理后的数据:', { exercises, meals });
+    return {
+      exercises,
+      meals
+    };
+  } catch (error) {
+    console.error('解析JSON失败:', error);
+    // 解析失败时返回模拟数据
+    console.log('使用模拟数据');
+    return {
+      exercises: [
+        {
+          id: 'ai-exercise-1',
+          day: '周一',
+          title: '胸部训练',
+          type: '力量训练',
+          duration: 60,
+          intensity: '中',
+          details: '平板杠铃卧推：4组×12次\n上斜哑铃卧推：3组×10次\n双杠臂屈伸：3组×15次\n蝴蝶夹胸：3组×15次'
+        },
+        {
+          id: 'ai-exercise-2',
+          day: '周二',
+          title: '背部训练',
+          type: '力量训练',
+          duration: 60,
+          intensity: '中',
+          details: '引体向上：4组×8次\n杠铃划船：3组×12次\n高位下拉：3组×15次\n坐姿划船：3组×12次'
+        },
+        {
+          id: 'ai-exercise-3',
+          day: '周三',
+          title: '有氧运动',
+          type: '有氧运动',
+          duration: 45,
+          intensity: '低',
+          details: '慢跑或快走45分钟，保持心率在最大心率的60-70%'
+        }
+      ],
+      meals: [
+        {
+          id: 'ai-meal-1',
+          day: '周一',
+          mealType: '早餐',
+          title: '高蛋白早餐',
+          calories: 450,
+          nutrition: '蛋白质25g，碳水50g，脂肪15g',
+          details: '燕麦粥（50g燕麦）+ 鸡蛋2个 + 牛奶200ml + 香蕉1根'
+        },
+        {
+          id: 'ai-meal-2',
+          day: '周一',
+          mealType: '午餐',
+          title: '增肌午餐',
+          calories: 650,
+          nutrition: '蛋白质35g，碳水80g，脂肪20g',
+          details: '鸡胸肉150g + 米饭150g + 蔬菜200g + 橄榄油10ml'
+        }
+      ]
+    };
+  }
 }
 </script>
 

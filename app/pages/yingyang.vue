@@ -79,11 +79,20 @@
           <div class="card-header">
             <span>营养分析</span>
             <!-- 分析周期选择器 -->
-            <el-select v-model="analysisPeriod" size="small" style="width: 120px;">
-              <el-option label="今日" value="today" />
-              <el-option label="本周" value="week" />
-              <el-option label="本月" value="month" />
-            </el-select>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <el-select v-model="analysisPeriod" size="small" style="width: 120px;">
+                <el-option label="今日" value="today" />
+                <el-option label="本周" value="week" />
+                <el-option label="本月" value="month" />
+              </el-select>
+              <el-button 
+                type="primary" 
+                size="small" 
+                @click="toggleGoalEditMode"
+              >
+                {{ isGoalEditMode ? '保存' : '编辑目标' }}
+              </el-button>
+            </div>
           </div>
         </template>
 
@@ -94,7 +103,17 @@
             <el-progress type="dashboard" :percentage="caloriesPercentage" :width="80" />
             <div class="nutrition-label">
               <span>热量</span>
-              <span>{{ totalNutrition.calories }} / {{ dailyGoal.calories }} kcal</span>
+              <div v-if="isGoalEditMode" class="nutrition-input">
+                <el-input-number 
+                  v-model="dailyGoal.calories" 
+                  :min="1000" 
+                  :max="50000" 
+                  :step="100" 
+                  style="width: 120px;" 
+                />
+                <span class="unit">kcal</span>
+              </div>
+              <span v-else>{{ totalNutrition.calories }} / {{ dailyGoal.calories }} kcal</span>
             </div>
           </div>
           <!-- 蛋白质仪表盘 -->
@@ -102,7 +121,17 @@
             <el-progress type="dashboard" :percentage="proteinPercentage" :width="80" color="#409EFF" />
             <div class="nutrition-label">
               <span>蛋白质</span>
-              <span>{{ totalNutrition.protein }} / {{ dailyGoal.protein }} g</span>
+              <div v-if="isGoalEditMode" class="nutrition-input">
+                <el-input-number 
+                  v-model="dailyGoal.protein" 
+                  :min="30" 
+                  :max="20000" 
+                  :step="5" 
+                  style="width: 120px;" 
+                />
+                <span class="unit">g</span>
+              </div>
+              <span v-else>{{ totalNutrition.protein }} / {{ dailyGoal.protein }} g</span>
             </div>
           </div>
           <!-- 碳水化合物仪表盘 -->
@@ -110,7 +139,17 @@
             <el-progress type="dashboard" :percentage="carbsPercentage" :width="80" color="#67C23A" />
             <div class="nutrition-label">
               <span>碳水化合物</span>
-              <span>{{ totalNutrition.carbs }} / {{ dailyGoal.carbs }} g</span>
+              <div v-if="isGoalEditMode" class="nutrition-input">
+                <el-input-number 
+                  v-model="dailyGoal.carbs" 
+                  :min="50" 
+                  :max="40000" 
+                  :step="10" 
+                  style="width: 120px;" 
+                />
+                <span class="unit">g</span>
+              </div>
+              <span v-else>{{ totalNutrition.carbs }} / {{ dailyGoal.carbs }} g</span>
             </div>
           </div>
           <!-- 脂肪仪表盘 -->
@@ -118,7 +157,17 @@
             <el-progress type="dashboard" :percentage="fatPercentage" :width="80" color="#E6A23C" />
             <div class="nutrition-label">
               <span>脂肪</span>
-              <span>{{ totalNutrition.fat }} / {{ dailyGoal.fat }} g</span>
+              <div v-if="isGoalEditMode" class="nutrition-input">
+                <el-input-number 
+                  v-model="dailyGoal.fat" 
+                  :min="20" 
+                  :max="15000" 
+                  :step="5" 
+                  style="width: 120px;" 
+                />
+                <span class="unit">g</span>
+              </div>
+              <span v-else>{{ totalNutrition.fat }} / {{ dailyGoal.fat }} g</span>
             </div>
           </div>
         </div>
@@ -350,10 +399,10 @@
           <!-- 在现有的 el-input-number 上添加 @change="onPortionChange" -->
           <el-input-number
             v-model="formData.portion"
-            :min="0.1"
+            :min="1"
             :max="1000"
-            :step="0.1"
-            style="width: 100px;"
+            :step="1"
+            style="width: 150px;"
             @change="onPortionChange"
           />
           <!-- 后面的 el-select 单位选择保持不变 -->
@@ -406,6 +455,8 @@ const showAddFoodDialog = ref(false)
 const editingFood = ref(null)
 // 分析周期选择：today(今日)、week(本周)、month(本月)
 const analysisPeriod = ref('today')
+// 目标编辑模式状态
+const isGoalEditMode = ref(false)
 
 // 表单引用
 const formRef = ref(null)
@@ -648,6 +699,55 @@ async function saveFood() {
       id: editingFood.value ? editingFood.value.id : Date.now().toString() // 编辑时使用原ID，新增时生成时间戳ID
     };
     
+    // 从localStorage获取用户ID
+    let currentUserId = null;
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // 解析Token
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      } catch (error) {
+        console.error('解析Token失败:', error);
+      }
+    }
+    // 如果没有Token或解析失败，使用默认用户ID 3
+    if (!currentUserId) {
+      currentUserId = 3;
+    }
+    
+    // 发送POST请求到API
+    try {
+      const response = await fetch('/api/food-records', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.value.name,
+          portion: formData.value.portion,
+          unit: formData.value.unit,
+          calories: formData.value.calories,
+          time: foodData.time,
+          total_calories: formData.value.calories,
+          user_id: currentUserId,
+          food_item_id: formData.value.selectedFoodId || 1 // 使用选中的食物ID，如果没有则使用默认值1
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        console.error('API保存失败:', data);
+        ElMessage.error('保存失败: ' + (data.statusMessage || '未知错误'));
+      }
+    } catch (apiError) {
+      console.error('API请求失败:', apiError);
+      // API请求失败时，仍然保存到本地，确保用户体验
+      ElMessage.warning('网络错误，数据已保存到本地');
+    }
+    
+    // 更新本地数据
     if (editingFood.value) {
       // 编辑现有记录
       const index = foodRecords.value.findIndex(r => r.id === editingFood.value.id);
@@ -662,7 +762,7 @@ async function saveFood() {
     // 按时间降序排序，确保最新时间在最上面
     foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
     
-    // 保存数据并显示成功消息
+    // 保存数据到本地存储
     saveFoodRecords();
     ElMessage.success(editingFood.value ? '编辑成功' : '添加成功');
     
@@ -686,6 +786,7 @@ async function saveFood() {
     };
   } catch (error) {
     console.error('保存失败:', error);
+    ElMessage.error('保存失败: 请稍后再试');
   } finally {
     saving.value = false; // 隐藏加载状态
   }
@@ -782,6 +883,19 @@ const handleFoodSelect = (id) => {
 const onPortionChange = () => {
   if (formData.value.selectedFoodId) {
     handleFoodSelect(formData.value.selectedFoodId)
+  }
+}
+
+// 5. 切换目标编辑模式
+const toggleGoalEditMode = () => {
+  if (isGoalEditMode.value) {
+    // 保存编辑，切换到非编辑模式
+    saveGoal() // 保存每日营养目标
+    isGoalEditMode.value = false
+    ElMessage.success('营养目标已保存')
+  } else {
+    // 进入编辑模式
+    isGoalEditMode.value = true
   }
 }
 // --- 新增函数区域结束 ---
@@ -919,6 +1033,23 @@ function getDaysInPeriod() {
 .nutrition-label span:last-child {
   font-size: 14px;
   color: #303133;
+}
+
+/* 营养输入框样式 */
+.nutrition-input {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.nutrition-input .el-input-number {
+  width: 100px;
+}
+
+.nutrition-input .unit {
+  font-size: 14px;
+  color: #606266;
 }
 
 .chart-container {

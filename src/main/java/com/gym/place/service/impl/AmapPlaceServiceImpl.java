@@ -161,6 +161,9 @@ public class AmapPlaceServiceImpl implements PlaceService {
      * @return 高德API原始响应（Map格式）
      */
     private Map<String, Object> callAmapRegeoApi(double longitude, double latitude) {
+        // 默认搜索半径为100米，提高精度
+        int radius = 100;
+        
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         // API路径（如：/v3/geocode/regeo）
@@ -173,6 +176,12 @@ public class AmapPlaceServiceImpl implements PlaceService {
                         .queryParam("extensions", "all")
                         // 可选：返回格式（默认JSON，无需指定）
                         .queryParam("output", "JSON")
+                        // 可选：搜索半径（单位：米），默认100米提高精度
+                        .queryParam("radius", radius)
+                        // 可选：是否返回附近POI，true返回，false不返回
+                        .queryParam("poitype", "")
+                        // 可选：是否简化返回结果，false不简化
+                        .queryParam("batch", false)
                         .build())
                 // 响应处理：非2xx状态码抛出WebClientResponseException
                 .retrieve()
