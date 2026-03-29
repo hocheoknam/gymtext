@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   pages: true, //开启pages目录
   // 新增这一行，消除兼容性警告
   compatibilityDate: "2025-12-04",
+
   // 其他原有配置（如 vite、modules 等）
   vite: {
     server: {

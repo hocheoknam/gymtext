@@ -1,5 +1,12 @@
 <template>
   <div class="data-page">
+    <!-- 返回首页链接 -->
+    <div class="back-to-home">
+      <router-link to="/home" style="color: #409EFF; text-decoration: none;">
+        <el-icon><ArrowLeft /></el-icon>
+        <span style="margin-left: 5px;">返回首页</span>
+      </router-link>
+    </div>
     <header class="top-nav">
       <div class="nav-container">
         <div class="logo">
@@ -83,34 +90,7 @@
       </div>
     </main>
     
-    <footer class="bottom-nav">
-      <div class="nav-items">
-        <div class="nav-item" @click="navigateTo('/home')">
-          <div class="nav-icon">
-            <el-icon><HomeFilled /></el-icon>
-          </div>
-          <span class="nav-text">首页</span>
-        </div>
-        <div class="nav-item" @click="navigateTo('/action')">
-          <div class="nav-icon">
-            <el-icon><VideoPlay /></el-icon>
-          </div>
-          <span class="nav-text">训练</span>
-        </div>
-        <div class="nav-item" @click="navigateTo('/eat')">
-          <div class="nav-icon">
-            <el-icon><Food /></el-icon>
-          </div>
-          <span class="nav-text">饮食</span>
-        </div>
-        <div class="nav-item active">
-          <div class="nav-icon">
-            <el-icon><DataAnalysis /></el-icon>
-          </div>
-          <span class="nav-text">数据</span>
-        </div>
-      </div>
-    </footer>
+
 
     <!-- 编辑对话框 -->
     <el-dialog
@@ -142,7 +122,8 @@ import {
   VideoPlay,
   Food,
   DataAnalysis,
-  Edit
+  Edit,
+  ArrowLeft
 } from "@element-plus/icons-vue";
 
 // 用户勋章列表
@@ -190,11 +171,19 @@ function formatNumber(num) {
   return formatted;
 }
 
-// 格式化日期
+// 格式化日期（24小时制）
 function formatDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleString();
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
 }
 
 // 显示勋章获得弹窗
@@ -450,25 +439,27 @@ async function loadUserAchievements() {
         userId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
       } catch (error) {
         console.error('解析Token失败:', error);
-        return;
       }
     }
   }
   
   if (!userId) {
-    return;
+    userId = 3; // 默认用户ID
   }
   
-  // 这里可以添加获取用户勋章列表的API调用
-  // 例如：
-  // try {
-  //   const response = await $fetch(`/api/user-achievements?user_id=${userId}`);
-  //   if (response.code === 200) {
-  //     userAchievements.value = response.data;
-  //   }
-  // } catch (error) {
-  //   console.error('获取勋章列表失败:', error);
-  // }
+  console.log('加载用户勋章，用户ID:', userId);
+  
+  // 调用API获取用户勋章列表
+  try {
+    const response = await $fetch(`/api/user-achievements?user_id=${userId}`);
+    console.log('勋章API响应:', response);
+    if (response.code === 200) {
+      userAchievements.value = response.data;
+      console.log('勋章列表已更新:', response.data);
+    }
+  } catch (error) {
+    console.error('获取勋章列表失败:', error);
+  }
 }
 
 // 生命周期钩子
@@ -732,52 +723,7 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-.bottom-nav {
-  background-color: #ffffff;
-  border-top: 1px solid #ebeef5;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
-}
 
-.nav-items {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  height: 56px;
-}
-
-.bottom-nav .nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  padding: 8px 16px;
-  color: #909399;
-  transition: color 0.3s;
-}
-
-.bottom-nav .nav-item.active {
-  color: #409eff;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-text {
-  font-size: 12px;
-  font-weight: 500;
-}
 
 @media (max-width: 768px) {
   .nav-menu {
@@ -788,16 +734,59 @@ onMounted(() => {
     padding: 20px;
   }
   
-  .bottom-nav {
-    display: block;
-  }
-  
   .main-content {
-    padding-bottom: 72px;
+    padding-bottom: 24px;
   }
   
   .achievements-list {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 返回首页链接样式 */
+.back-to-home {
+  margin: 20px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f0f9ff;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.back-to-home:hover {
+  background-color: #e6f7ff;
+  transform: translateX(-2px);
+}
+
+.back-to-home a {
+  display: flex;
+  align-items: center;
+  color: #409EFF !important;
+  font-weight: bold;
+  text-decoration: none !important;
+}
+
+.back-to-home a:hover {
+  color: #66b1ff !important;
+}
+
+.back-to-home .el-icon {
+  font-size: 18px;
+  margin-right: 5px;
+}
+
+.back-to-home {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

@@ -704,6 +704,11 @@ const saveWeightData = async function () {
   
   try {
     // 发送POST请求到API
+    // 使用ISO格式的时间戳，但确保是本地时间
+    const now = new Date();
+    // 创建一个新的Date对象，确保它被当作本地时间处理
+    const localDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
+    
     const response = await fetch('/api/body-metrics', {
       method: 'POST',
       headers: {
@@ -713,7 +718,7 @@ const saveWeightData = async function () {
         user_id: currentUserId,
         weight_kg: editCurrentWeight.value,
         body_fat: editBodyFat.value,
-        measurement_date: new Date().toISOString()
+        measurement_date: localDate.toISOString()
       }),
     });
     
@@ -750,12 +755,12 @@ const formatDateTime = (dateStr) => {
       date = new Date(dateStr.replace(' ', 'T'));
     }
     
-    // 使用UTC方法获取时间，避免时区偏移
+    // 使用本地时间方法，确保显示正确的本地时间
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0'); // 24小时制
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0'); // 24小时制，使用本地时间
+    const minutes = String(date.getMinutes()).padStart(2, '0'); // 使用本地时间
     
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   } catch (error) {
@@ -901,6 +906,10 @@ const saveWeightRecord = async () => {
   
   try {
     // 发送POST请求到API
+    // 使用ISO格式的时间戳，但确保是本地时间
+    const date = new Date(newWeightRecord.value.date);
+    // 创建一个新的Date对象，确保它被当作本地时间处理
+    const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes());
     const response = await fetch('/api/body-metrics', {
       method: 'POST',
       headers: {
@@ -910,7 +919,7 @@ const saveWeightRecord = async () => {
         user_id: currentUserId,
         weight_kg: weight,
         body_fat: newWeightRecord.value.bodyFat || bodyFat.value, // 使用弹窗中输入的体脂率，如果没有则使用当前体脂率
-        measurement_date: newWeightRecord.value.date
+        measurement_date: localDate.toISOString()
       }),
     });
     

@@ -18,7 +18,7 @@ const getAxios = () => {
  */
 export async function sendCode(email) {
   const axios = getAxios();
-  const response = await axios.post("/sendCode", {
+  const response = await axios.post("/api/sendCode", {
     email,
   });
   return response.data;
@@ -36,7 +36,7 @@ export async function register(params) {
   const { username, email, code, password } = params;
   // 调用注册接口server/api/register.ts
   const axios = getAxios();
-  const response = await axios.post("/register", {
+  const response = await axios.post("/api/register", {
     username,
     email,
     code,
@@ -52,6 +52,6 @@ export async function register(params) {
  */
 export async function login(params) {
   const axios = getAxios();
-  const response = await axios.post("/login", params);
+  const response = await axios.post("/api/login", params);
   return response.data;
 }

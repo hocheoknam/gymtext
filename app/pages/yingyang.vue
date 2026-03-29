@@ -3,8 +3,8 @@
   <div class="diet-management-system">
     <!-- 返回首页链接 -->
     <div class="back-to-home">
-      <router-link to="/home" style="color: black; font-weight: bold; text-decoration: none;">
-        <el-icon><ArrowLeft /></el-icon> <!-- 使用Element UI的箭头图标 -->
+      <router-link to="/home" style="color: #409EFF; text-decoration: none;">
+        <el-icon><ArrowLeft /></el-icon>
         <span style="margin-left: 5px;">返回首页</span>
       </router-link>
     </div>
@@ -254,86 +254,7 @@
       </el-card>
     </div>
 
-    <!-- 饮食目标设置卡片 -->
-    <el-card class="goal-setting-card" shadow="hover">
-      <!-- 卡片头部模板 -->
-      <template #header>
-        <div class="card-header">
-          <span>饮食目标设置</span>
-        </div>
-      </template>
 
-      <!-- 表单组件，绑定dailyGoal数据模型 -->
-      <el-form :model="dailyGoal" label-width="120px" style="max-width: 1000px; margin-left: 20px;">
-        <!-- 一行布局：包含热量、蛋白质、碳水和脂肪四个目标 -->
-        <el-row :gutter="300"> <!-- gutter设置列间距为300px -->
-          <!-- 热量目标输入 -->
-          <el-col :span="5">
-            <el-form-item label="热量目标" style="margin-bottom: 25px;">
-              <div class="input-with-unit" style="display: flex; align-items: center;">
-                <el-input-number 
-                  v-model="dailyGoal.calories" 
-                  :min="1000" 
-                  :max="5000" 
-                  :step="100" 
-                  style="width: 120px;" 
-                />
-                <span class="unit" style="margin-left: 5px; font-weight: 500;">kcal</span>
-              </div>
-            </el-form-item>
-          </el-col>
-          <!-- 蛋白质目标输入 -->
-          <el-col :span="5">
-            <el-form-item label="蛋白质目标" style="margin-bottom: 25px;">
-              <div class="input-with-unit" style="display: flex; align-items: center;">
-                <el-input-number 
-                  v-model="dailyGoal.protein" 
-                  :min="30" 
-                  :max="200" 
-                  :step="5" 
-                  style="width: 120px;" 
-                />
-                <span class="unit" style="margin-left: 5px; font-weight: 500;">g</span>
-              </div>
-            </el-form-item>
-          </el-col>
-          <!-- 碳水目标输入 -->
-          <el-col :span="5">
-            <el-form-item label="碳水目标" style="margin-bottom: 20px;">
-              <div class="input-with-unit" style="display: flex; align-items: center;">
-                <el-input-number 
-                  v-model="dailyGoal.carbs" 
-                  :min="50" 
-                  :max="400" 
-                  :step="10" 
-                  style="width: 120px;" 
-                />
-                <span class="unit" style="margin-left: 5px; font-weight: 500;">g</span>
-              </div>
-            </el-form-item>
-          </el-col>
-          <!-- 脂肪目标输入 -->
-          <el-col :span="5">
-            <el-form-item label="脂肪目标" style="margin-bottom: 15px;">
-              <div class="input-with-unit" style="display: flex; align-items: center;">
-                <el-input-number 
-                  v-model="dailyGoal.fat" 
-                  :min="20" 
-                  :max="150" 
-                  :step="5" 
-                  style="width: 120px;" 
-                />
-                <span class="unit" style="margin-left: 5px; font-weight: 500;">g</span>
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- 保存按钮 -->
-        <el-form-item style="margin-top: 30px; margin-left: 20px;">
-          <el-button type="primary" @click="saveGoal">保存目标</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
 
     <!-- 添加/编辑食物对话框 -->
     <el-dialog
@@ -526,22 +447,38 @@ const filteredFoodRecords = computed(() => {
       startDate.setHours(0, 0, 0, 0)
   }
   
-  return foodRecords.value.filter(record => {
+  const filtered = foodRecords.value.filter(record => {
     const recordDate = new Date(record.time)
+    // 检查日期是否有效
+    if (isNaN(recordDate.getTime())) {
+      console.error('无效的时间格式:', record.time)
+      return false
+    }
     return recordDate >= startDate
   })
+  
+  console.log('过滤后的食物记录:', filtered)
+  console.log('分析周期:', analysisPeriod.value)
+  console.log('开始日期:', startDate)
+  console.log('所有食物记录:', foodRecords.value)
+  
+  return filtered
 })
 
 // 计算属性：统计总营养摄入
 const totalNutrition = computed(() => {
-  return filteredFoodRecords.value.reduce((total, record) => {
+  const result = filteredFoodRecords.value.reduce((total, record) => {
+    console.log('处理记录:', record)
     return {
-      calories: total.calories + (record.calories || 0),
-      protein: total.protein + (record.protein || 0),
-      carbs: total.carbs + (record.carbs || 0),
-      fat: total.fat + (record.fat || 0)
+      calories: total.calories + (Number(record.calories) || 0),
+      protein: total.protein + (Number(record.protein) || 0),
+      carbs: total.carbs + (Number(record.carbs) || 0),
+      fat: total.fat + (Number(record.fat) || 0)
     }
   }, { calories: 0, protein: 0, carbs: 0, fat: 0 })
+  
+  console.log('总营养摄入:', result)
+  return result
 })
 
 // 计算属性：计算各项营养百分比（相对于目标）
@@ -648,9 +585,44 @@ onMounted(() => {
 function loadFoodRecords() {
   const savedRecords = localStorage.getItem('foodRecords')
   if (savedRecords) {
-    foodRecords.value = JSON.parse(savedRecords)
-    // 按时间降序排序，确保最新时间在最上面
-    foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time))
+    try {
+      foodRecords.value = JSON.parse(savedRecords)
+      // 按时间降序排序，确保最新时间在最上面
+      foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time))
+      console.log('从localStorage加载的食物记录:', foodRecords.value)
+    } catch (error) {
+      console.error('解析食物记录失败:', error)
+      foodRecords.value = []
+    }
+  } else {
+    console.log('localStorage中没有食物记录')
+    // 添加一些示例数据用于测试
+    foodRecords.value = [
+      {
+        id: '1',
+        name: '鸡蛋',
+        portion: 100,
+        unit: 'g',
+        calories: 155,
+        protein: 13,
+        carbs: 1.1,
+        fat: 11,
+        time: new Date().toISOString().split('T').join(' ').slice(0, 19)
+      },
+      {
+        id: '2',
+        name: '米饭',
+        portion: 100,
+        unit: 'g',
+        calories: 130,
+        protein: 2.6,
+        carbs: 28,
+        fat: 0.3,
+        time: new Date().toISOString().split('T').join(' ').slice(0, 19)
+      }
+    ]
+    saveFoodRecords()
+    console.log('添加了示例食物记录:', foodRecords.value)
   }
 }
 
@@ -816,7 +788,8 @@ function deleteFood(id) {
 async function loadFoodDatabase() {
   try {
     // 确保这里的 API 路径与您 /eat 页面获取数据的路径一致
-    const res = await $fetch("/api/food-items")
+    const response = await fetch("/api/food-items")
+    const res = await response.json()
     const data = (res.data || [])
     allFoodDatabase.value = data
     // 初始化显示前10条，或者留空等待搜索
@@ -1115,42 +1088,7 @@ function getDaysInPeriod() {
   margin-top: 30px;
 }
 
-/* 饮食目标设置样式 */
-.goal-setting-card {
-  margin-top: 20px;
-}
 
-/* 输入框和单位样式 */
-.input-with-unit {
-  display: flex;
-  align-items: center;
-}
-
-.el-input-number {
-  font-size: 16px;
-}
-
-.el-input-number__decrease,
-.el-input-number__increase {
-  height: 32px;
-}
-
-.el-input-number__decrease:hover:not(.is-disabled):before,
-.el-input-number__increase:hover:not(.is-disabled):before {
-  color: #409EFF;
-}
-
-.el-input-number__input {
-  height: 32px;
-  text-align: center;
-  font-size: 16px;
-}
-
-.unit {
-  margin-left: 5px;
-  font-size: 14px;
-  color: #606266;
-}
 
 .dialog-footer {
   display: flex;

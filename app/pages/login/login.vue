@@ -193,6 +193,11 @@ async function handleLogin() {
     if (response.success) {
       ElMessage.success("登录成功");
       loginResult.value = `登录成功: ${JSON.stringify(response)}`;
+      // 存储token到localStorage
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+        console.log('token已存储到localStorage:', response.token);
+      }
       // 这里可以添加登录成功后的跳转逻辑
       useRouter().push("/home");
     } else {

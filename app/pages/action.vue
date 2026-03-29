@@ -1,5 +1,12 @@
 <template>
   <div class="action-page">
+    <!-- 返回首页链接 -->
+    <div class="back-to-home">
+      <router-link to="/home" style="color: #409EFF; text-decoration: none;">
+        <el-icon><ArrowLeft /></el-icon>
+        <span style="margin-left: 5px;">返回首页</span>
+      </router-link>
+    </div>
     <header class="top-nav">
       <div class="nav-container">
         <div class="logo">
@@ -78,41 +85,14 @@
       </div>
     </main>
     
-    <footer class="bottom-nav">
-      <div class="nav-items">
-        <div class="nav-item" @click="navigateTo('/home')">
-          <div class="nav-icon">
-            <el-icon><HomeFilled /></el-icon>
-          </div>
-          <span class="nav-text">首页</span>
-        </div>
-        <div class="nav-item active">
-          <div class="nav-icon">
-            <el-icon><VideoPlay /></el-icon>
-          </div>
-          <span class="nav-text">训练</span>
-        </div>
-        <div class="nav-item">
-          <div class="nav-icon">
-            <el-icon><Tools /></el-icon>
-          </div>
-          <span class="nav-text">工具</span>
-        </div>
-        <div class="nav-item">
-          <div class="nav-icon">
-            <el-icon><User /></el-icon>
-          </div>
-          <span class="nav-text">我的</span>
-        </div>
-      </div>
-    </footer>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { navigateTo } from "nuxt/app";
-import { HomeFilled, VideoPlay, Tools, User } from "@element-plus/icons-vue";
+import { HomeFilled, VideoPlay, Tools, User, ArrowLeft } from "@element-plus/icons-vue";
 
 const exerciseList = ref([]);
 const activeCategory = ref("");
@@ -342,52 +322,7 @@ onMounted(async () => {
   margin-top: 10px !important;
 }
 
-.bottom-nav {
-  background-color: #ffffff;
-  border-top: 1px solid #ebeef5;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
-}
 
-.nav-items {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  height: 56px;
-}
-
-.bottom-nav .nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  padding: 8px 16px;
-  color: #909399;
-  transition: color 0.3s;
-}
-
-.bottom-nav .nav-item.active {
-  color: #409eff;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-text {
-  font-size: 12px;
-  font-weight: 500;
-}
 
 @media (max-width: 768px) {
   .nav-menu {
@@ -398,12 +333,55 @@ onMounted(async () => {
     padding: 20px;
   }
   
-  .bottom-nav {
-    display: block;
-  }
-  
   .main-content {
-    padding-bottom: 72px;
+    padding-bottom: 24px;
+  }
+}
+
+/* 返回首页链接样式 */
+.back-to-home {
+  margin: 20px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f0f9ff;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.back-to-home:hover {
+  background-color: #e6f7ff;
+  transform: translateX(-2px);
+}
+
+.back-to-home a {
+  display: flex;
+  align-items: center;
+  color: #409EFF !important;
+  font-weight: bold;
+  text-decoration: none !important;
+}
+
+.back-to-home a:hover {
+  color: #66b1ff !important;
+}
+
+.back-to-home .el-icon {
+  font-size: 18px;
+  margin-right: 5px;
+}
+
+.back-to-home {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

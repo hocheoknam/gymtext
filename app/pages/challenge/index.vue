@@ -1,5 +1,12 @@
 <template>
   <div class="challenge-page">
+    <!-- 返回首页链接 -->
+    <div class="back-to-home">
+      <router-link to="/home" style="color: #409EFF; text-decoration: none;">
+        <el-icon><ArrowLeft /></el-icon>
+        <span style="margin-left: 5px;">返回首页</span>
+      </router-link>
+    </div>
     <header class="top-nav">
       <div class="nav-container">
         <div class="logo">
@@ -72,7 +79,10 @@
               </div>
             </div>
             <div class="challenge-actions">
-              <el-button v-if="joinedStatus[challenge.id]" type="success" size="default" @click="handleCancelParticipation(challenge.id)">
+              <el-button v-if="joinedStatus[challenge.id] && challenge.status === 'ongoing'" :type="checkedInStatus[challenge.id] ? 'success' : 'primary'" size="default" @click="navigateTo(`/challenge/${challenge.id}`)">
+              {{ checkedInStatus[challenge.id] ? '已打卡' : '打卡' }}
+            </el-button>
+              <el-button v-else-if="joinedStatus[challenge.id]" type="success" size="default" @click="handleCancelParticipation(challenge.id)">
               已参与
             </el-button>
             <el-button v-else-if="challenge.status !== 'completed'" type="primary" size="default" @click="handleOpenDialog(challenge.id, challenge.status)">{{ getPrimaryButtonText(challenge.status) }}</el-button>
@@ -88,34 +98,7 @@
     
 
     
-    <footer class="bottom-nav">
-      <div class="nav-items">
-        <div class="nav-item" @click="navigateTo('/home')">
-          <div class="nav-icon">
-            <el-icon><HomeFilled /></el-icon>
-          </div>
-          <span class="nav-text">首页</span>
-        </div>
-        <div class="nav-item" @click="navigateTo('/action')">
-          <div class="nav-icon">
-            <el-icon><VideoPlay /></el-icon>
-          </div>
-          <span class="nav-text">训练</span>
-        </div>
-        <div class="nav-item" @click="navigateTo('/eat')">
-          <div class="nav-icon">
-            <el-icon><Food /></el-icon>
-          </div>
-          <span class="nav-text">饮食</span>
-        </div>
-        <div class="nav-item active">
-          <div class="nav-icon">
-            <el-icon><Aim /></el-icon>
-          </div>
-          <span class="nav-text">挑战</span>
-        </div>
-      </div>
-    </footer>
+
   </div>
 </template>
 
@@ -126,9 +109,43 @@ import {
   HomeFilled,
   VideoPlay,
   Food,
-  Aim
+  Aim,
+  ArrowLeft
 } from "@element-plus/icons-vue";
-import { ElButton, ElDialog, ElMessage } from "element-plus";
+import { ElButton, ElDialog, ElMessage, ElMessageBox } from "element-plus";
+
+// 统一的用户ID获取函数
+const getCurrentUserId = () => {
+  let currentUserId = null;
+  const token = localStorage.getItem('token');
+  
+  if (token) {
+    try {
+      // 解析Token
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      // 尝试从不同字段获取用户ID
+      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      console.log('从Token中解析出的用户ID:', currentUserId);
+    } catch (error) {
+      console.error('解析Token失败:', error);
+      // 尝试直接从localStorage获取用户ID
+      currentUserId = localStorage.getItem('user_id');
+      console.log('从localStorage直接获取的用户ID:', currentUserId);
+    }
+  } else {
+    // 尝试直接从localStorage获取用户ID
+    currentUserId = localStorage.getItem('user_id');
+    console.log('从localStorage直接获取的用户ID:', currentUserId);
+  }
+  
+  // 如果没有获取到用户ID，使用默认值1（与打卡时保持一致）
+  if (!currentUserId) {
+    currentUserId = 1;
+    console.log('使用默认用户ID:', currentUserId);
+  }
+  
+  return currentUserId;
+};
 
 // 挑战活动数据
 const challenges = ref([]);
@@ -136,9 +153,69 @@ const loading = ref(true);
 
 // 存储每个挑战的报名状态，格式：{ challengeId: true/false }
 const joinedStatus = ref({});
+// 存储每个挑战的打卡状态，格式：{ challengeId: true/false }
+const checkedInStatus = ref({});
 
 // 弹窗相关变量
 const currentChallengeId = ref(null);
+
+// 检查打卡状态
+const checkCheckInStatus = async (challengeId) => {
+  try {
+    const currentUserId = getCurrentUserId();
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.log('未登录，跳过检查打卡状态');
+      return;
+    }
+    
+    // 尝试使用GET请求
+    const response = await fetch(`/api/checkin?challenge_id=${challengeId}&user_id=${currentUserId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      checkedInStatus.value[challengeId] = data.data?.todayCheckedIn || false;
+    }
+  } catch (error) {
+    console.error('检查打卡状态失败:', error);
+    // 即使出错，也尝试直接检查今天是否已打卡
+    try {
+      const currentUserId = getCurrentUserId();
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        const response = await fetch('/api/checkin/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            challenge_id: challengeId,
+            user_id: currentUserId,
+            proof: '完成了今天的训练'
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.code === 400 && data.message.includes('今天已经打卡过了')) {
+          checkedInStatus.value[challengeId] = true;
+        }
+      }
+    } catch (checkError) {
+      console.error('直接检查打卡状态失败:', checkError);
+    }
+  }
+};
 
 // 从API获取挑战活动数据
 const fetchChallenges = async () => {
@@ -149,9 +226,10 @@ const fetchChallenges = async () => {
     if (data.code === 200) {
       challenges.value = data.data;
       
-      // 遍历每个挑战，检查当前用户是否已报名
+      // 遍历每个挑战，检查当前用户是否已报名和打卡
       for (const challenge of challenges.value) {
         await checkChallengeStatus(challenge.id);
+        await checkCheckInStatus(challenge.id);
       }
     } else {
       console.error('获取挑战活动失败:', data.message);
@@ -166,35 +244,19 @@ const fetchChallenges = async () => {
 // 检查单个挑战的报名状态
 const checkChallengeStatus = async (challengeId) => {
   try {
-    // 从localStorage获取Token并解析用户ID
-    let currentUserId = null;
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        // 解析Token（简单示例，实际需用jwt-decode等库）
-        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        // 尝试从不同字段获取用户ID
-        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-        console.log('从Token中解析出的用户ID:', currentUserId);
-      } catch (error) {
-        console.error('解析Token失败:', error);
-        // 尝试直接从localStorage获取用户ID
-        currentUserId = localStorage.getItem('user_id');
-        console.log('从localStorage直接获取的用户ID:', currentUserId);
-      }
-    } else {
-      // 尝试直接从localStorage获取用户ID
-      currentUserId = localStorage.getItem('user_id');
-      console.log('从localStorage直接获取的用户ID:', currentUserId);
-    }
-    // 强制使用默认用户ID 3（根据登录日志，当前登录用户ID为3）
-    // 覆盖从Token或localStorage获取的用户ID，确保使用正确的用户ID
-    currentUserId = 3;
-    console.log('使用默认用户ID:', currentUserId);
+    // 使用统一的用户ID获取函数
+    const currentUserId = getCurrentUserId();
+    console.log('使用用户ID:', currentUserId);
     
     // 发送GET请求到API，检查用户是否已报名
+    console.log('准备发送检查报名状态请求:', {
+      challengeId: challengeId,
+      userId: parseInt(currentUserId)
+    });
     const response = await fetch(`/api/challenge/check?user_id=${parseInt(currentUserId)}&challenge_id=${challengeId}`);
+    console.log('检查报名状态请求响应状态:', response.status);
     const data = await response.json();
+    console.log('检查报名状态请求响应数据:', data);
     
     if (data.code === 200) {
       joinedStatus.value[challengeId] = data.data.isJoined;
@@ -203,6 +265,8 @@ const checkChallengeStatus = async (challengeId) => {
     console.error('检查报名状态失败:', error);
   }
 };
+
+
 
 // 组件挂载时获取数据
 onMounted(() => {
@@ -299,33 +363,15 @@ const handleOpenDialog = (id, status) => {
     })
       .then(async () => {
         try {
-          // 从localStorage获取Token并解析用户ID
-          let currentUserId = null;
-          const token = localStorage.getItem('token');
-          if (token) {
-            try {
-              // 解析Token（简单示例，实际需用jwt-decode等库）
-              const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-              // 尝试从不同字段获取用户ID
-              currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-              console.log('从Token中解析出的用户ID:', currentUserId);
-            } catch (error) {
-              console.error('解析Token失败:', error);
-              // 尝试直接从localStorage获取用户ID
-              currentUserId = localStorage.getItem('user_id');
-              console.log('从localStorage直接获取的用户ID:', currentUserId);
-            }
-          } else {
-            // 尝试直接从localStorage获取用户ID
-            currentUserId = localStorage.getItem('user_id');
-            console.log('从localStorage直接获取的用户ID:', currentUserId);
-          }
-          // 强制使用默认用户ID 3（根据登录日志，当前登录用户ID为3）
-          // 覆盖从Token或localStorage获取的用户ID，确保使用正确的用户ID
-          currentUserId = 3;
-          console.log('使用默认用户ID:', currentUserId);
+          // 使用统一的用户ID获取函数
+          const currentUserId = getCurrentUserId();
+          console.log('使用用户ID:', currentUserId);
           
           // 发送POST请求到API
+          console.log('准备发送参与挑战请求:', {
+            challengeId: currentChallengeId.value,
+            userId: parseInt(currentUserId)
+          });
           const response = await fetch(`/api/challenge/${currentChallengeId.value}`, {
             method: 'POST',
             headers: {
@@ -335,8 +381,9 @@ const handleOpenDialog = (id, status) => {
               user_id: parseInt(currentUserId),
             }),
           });
-          
+          console.log('参与挑战请求响应状态:', response.status);
           const data = await response.json();
+          console.log('参与挑战请求响应数据:', data);
           
           if (data.code === 200) {
             ElMessage.success('参与挑战成功！');
@@ -349,8 +396,8 @@ const handleOpenDialog = (id, status) => {
             ElMessage.error(data.message || '参与挑战失败');
           }
         } catch (error) {
-          console.error('请求失败:', error);
-          ElMessage.error('网络错误，请稍后再试');
+          console.error('参与挑战失败:', error);
+          ElMessage.error('网络请求失败，请重试');
         } finally {
           // 恢复页面滚动
           document.body.style.overflow = '';
@@ -383,33 +430,15 @@ const handleCancelParticipation = (id) => {
   })
     .then(async () => {
       try {
-        // 从localStorage获取Token并解析用户ID
-        let currentUserId = null;
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            // 解析Token（简单示例，实际需用jwt-decode等库）
-            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-            // 尝试从不同字段获取用户ID
-            currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-            console.log('从Token中解析出的用户ID:', currentUserId);
-          } catch (error) {
-            console.error('解析Token失败:', error);
-            // 尝试直接从localStorage获取用户ID
-            currentUserId = localStorage.getItem('user_id');
-            console.log('从localStorage直接获取的用户ID:', currentUserId);
-          }
-        } else {
-          // 尝试直接从localStorage获取用户ID
-          currentUserId = localStorage.getItem('user_id');
-          console.log('从localStorage直接获取的用户ID:', currentUserId);
-        }
-        // 强制使用默认用户ID 3（根据登录日志，当前登录用户ID为3）
-        // 覆盖从Token或localStorage获取的用户ID，确保使用正确的用户ID
-        currentUserId = 3;
-        console.log('使用默认用户ID:', currentUserId);
+        // 使用统一的用户ID获取函数
+        const currentUserId = getCurrentUserId();
+        console.log('使用用户ID:', currentUserId);
         
         // 发送DELETE请求到API
+        console.log('准备发送取消参与挑战请求:', {
+          challengeId: id,
+          userId: parseInt(currentUserId)
+        });
         const response = await fetch(`/api/challenge/${id}/participation`, {
           method: 'DELETE',
           headers: {
@@ -419,8 +448,9 @@ const handleCancelParticipation = (id) => {
             user_id: parseInt(currentUserId),
           }),
         });
-        
+        console.log('取消参与挑战请求响应状态:', response.status);
         const data = await response.json();
+        console.log('取消参与挑战请求响应数据:', data);
         
         if (data.code === 200) {
           ElMessage.success('取消参与成功！');
@@ -431,8 +461,8 @@ const handleCancelParticipation = (id) => {
           ElMessage.error(data.message || '取消参与失败');
         }
       } catch (error) {
-        console.error('请求失败:', error);
-        ElMessage.error('网络错误，请稍后再试');
+        console.error('取消参与挑战失败:', error);
+        ElMessage.error('网络请求失败，请重试');
       } finally {
         // 恢复页面滚动
         document.body.style.overflow = '';
@@ -571,52 +601,7 @@ const formatDate = (dateString) => {
   line-height: 1.5;
 }
 
-.bottom-nav {
-  background-color: #ffffff;
-  border-top: 1px solid #ebeef5;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
-}
 
-.nav-items {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  height: 56px;
-}
-
-.bottom-nav .nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  padding: 8px 16px;
-  color: #909399;
-  transition: color 0.3s;
-}
-
-.bottom-nav .nav-item.active {
-  color: #409eff;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-text {
-  font-size: 12px;
-  font-weight: 500;
-}
 
 
 /* 加载和空状态样式 */
@@ -640,12 +625,8 @@ const formatDate = (dateString) => {
     padding: 20px;
   }
   
-  .bottom-nav {
-    display: block;
-  }
-  
   .main-content {
-    padding-bottom: 72px;
+    padding-bottom: 24px;
   }
   
   /* 响应式调整 */

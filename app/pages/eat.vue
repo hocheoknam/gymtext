@@ -1,5 +1,12 @@
 <template>
   <div class="eat-page">
+    <!-- 返回首页链接 -->
+    <div class="back-to-home">
+      <router-link to="/home" style="color: #409EFF; text-decoration: none;">
+        <el-icon><ArrowLeft /></el-icon>
+        <span style="margin-left: 5px;">返回首页</span>
+      </router-link>
+    </div>
     <header class="top-nav">
       <div class="nav-container">
         <div class="logo">
@@ -69,33 +76,14 @@
       </div>
     </main>
 
-    <footer class="bottom-nav">
-      <div class="nav-items">
-        <div class="nav-item" @click="navigateTo('/home')">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </div>
-        <div class="nav-item" @click="navigateTo('/action')">
-          <el-icon><VideoPlay /></el-icon>
-          <span>训练</span>
-        </div>
-        <div class="nav-item active">
-          <el-icon><Food /></el-icon>
-          <span>饮食</span>
-        </div>
-        <div class="nav-item" @click="navigateTo('/data')">
-          <el-icon><User /></el-icon>
-          <span>我的</span>
-        </div>
-      </div>
-    </footer>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { navigateTo } from "nuxt/app";
-import { HomeFilled, VideoPlay, Food, User } from "@element-plus/icons-vue";
+import { HomeFilled, VideoPlay, Food, User, ArrowLeft } from "@element-plus/icons-vue";
 import type { TabPaneName } from 'element-plus';
 
 // 定义食物数据结构
@@ -203,14 +191,58 @@ onMounted(async () => {
 .nutrients { display:flex; flex-direction:column; gap:4px; font-size:14px; color:#666; }
 .empty-tip { grid-column: 1 / -1; text-align: center; padding:40px 0; color:#909399; font-size: 16px; }
 
-.bottom-nav { background:#fff; border-top:1px solid #ebeef5; position:fixed; bottom:0; left:0; right:0; z-index:100; }
-.nav-items { display:flex; justify-content:space-around; height:56px; }
-.bottom-nav .nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; color:#909399; cursor: pointer; }
-.bottom-nav .nav-item.active { color:#409eff; }
+
 
 @media (max-width:768px) {
   .nav-menu { display:none; }
-  .main-content { padding-bottom:72px; }
+  .main-content { padding-bottom:24px; }
   .content-container { padding: 20px; }
+}
+
+/* 返回首页链接样式 */
+.back-to-home {
+  margin: 20px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f0f9ff;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.back-to-home:hover {
+  background-color: #e6f7ff;
+  transform: translateX(-2px);
+}
+
+.back-to-home a {
+  display: flex;
+  align-items: center;
+  color: #409EFF !important;
+  font-weight: bold;
+  text-decoration: none !important;
+}
+
+.back-to-home a:hover {
+  color: #66b1ff !important;
+}
+
+.back-to-home .el-icon {
+  font-size: 18px;
+  margin-right: 5px;
+}
+
+.back-to-home {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

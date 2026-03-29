@@ -2,6 +2,12 @@
   <div class="success-page">
     <header class="page-header">
       <div class="header-content">
+        <div class="back-to-home">
+          <router-link to="/home" style="color: #ffffff; text-decoration: none; display: flex; align-items: center;">
+            <el-icon><ArrowLeft /></el-icon>
+            <span style="margin-left: 5px;">返回首页</span>
+          </router-link>
+        </div>
         <el-button @click="navigateTo('/challenge')" class="back-button">
           <el-icon><ArrowLeft /></el-icon>
           返回挑战列表
@@ -29,26 +35,7 @@
       </div>
     </main>
 
-    <footer class="bottom-nav">
-      <div class="nav-items">
-        <NuxtLink to="/" class="nav-item">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </NuxtLink>
-        <NuxtLink to="/checkin" class="nav-item">
-          <el-icon><VideoPlay /></el-icon>
-          <span>打卡</span>
-        </NuxtLink>
-        <NuxtLink to="/yingyang" class="nav-item">
-          <el-icon><Food /></el-icon>
-          <span>营养</span>
-        </NuxtLink>
-        <NuxtLink to="/challenge" class="nav-item active">
-          <el-icon><Aim /></el-icon>
-          <span>挑战</span>
-        </NuxtLink>
-      </div>
-    </footer>
+
   </div>
 </template>
 
@@ -111,6 +98,19 @@ const navigateTo = (path) => {
   }
 }
 
+.back-to-home {
+  margin-right: 16px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  display: inline-block;
+  transition: all 0.3s ease;
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
+}
+
 .header-content h1 {
   margin: 0;
   font-size: 20px;
@@ -166,44 +166,7 @@ const navigateTo = (path) => {
   }
 }
 
-.bottom-nav {
-  background-color: #ffffff;
-  border-top: 1px solid #ebeef5;
-  padding: 8px 0;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-}
 
-.nav-items {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 16px;
-  color: #606266;
-  text-decoration: none;
-  transition: color 0.3s;
-  &.active {
-    color: #1890ff;
-  }
-  el-icon {
-    font-size: 24px;
-    margin-bottom: 4px;
-  }
-  span {
-    font-size: 12px;
-  }
-}
 
 @media (max-width: 768px) {
   .header-content {

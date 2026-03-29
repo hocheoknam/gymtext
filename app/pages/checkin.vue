@@ -240,7 +240,7 @@
 </template>
 
 <script>
-import { ArrowLeft, CircleCheck, CircleClose } from '@element-plus/icons-vue';
+import { ArrowLeft, CircleCheck, CircleClose, InfoFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 
 export default {
@@ -249,6 +249,7 @@ export default {
     ArrowLeft,
     CircleCheck,
     CircleClose,
+    InfoFilled,
   },
   data() {
     return {
@@ -333,13 +334,46 @@ export default {
       return maxStreak;
     },
   },
-  mounted() {
-    this.init();
+  async mounted() {
+    await this.init();
   },
   methods: {
-    init() {
+    // 统一的用户ID获取函数
+    getCurrentUserId() {
+      let currentUserId = null;
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        try {
+          // 解析Token
+          const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+          // 尝试从不同字段获取用户ID
+          currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+          console.log('从Token中解析出的用户ID:', currentUserId);
+        } catch (error) {
+          console.error('解析Token失败:', error);
+          // 尝试直接从localStorage获取用户ID
+          currentUserId = localStorage.getItem('user_id');
+          console.log('从localStorage直接获取的用户ID:', currentUserId);
+        }
+      } else {
+        // 尝试直接从localStorage获取用户ID
+        currentUserId = localStorage.getItem('user_id');
+        console.log('从localStorage直接获取的用户ID:', currentUserId);
+      }
+      
+      // 如果没有获取到用户ID，使用默认值1（与打卡时保持一致）
+      if (!currentUserId) {
+        currentUserId = 1;
+        console.log('使用默认用户ID:', currentUserId);
+      }
+      
+      return currentUserId;
+    },
+    
+    async init() {
       this.setTodayDate();
-      this.loadCheckinRecords();
+      await this.loadCheckinRecords();
       this.checkTodayStatus();
       this.loadExerciseList();
     },
@@ -369,10 +403,44 @@ export default {
       const day = now.getDate().toString().padStart(2, '0');
       this.todayDate = `${year}-${month}-${day}`;
     },
-    loadCheckinRecords() {
-      const records = localStorage.getItem('checkinRecords');
-      this.checkinRecords = records ? JSON.parse(records) : [];
-      this.checkinRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
+    async loadCheckinRecords() {
+      try {
+        const currentUserId = this.getCurrentUserId();
+        const token = localStorage.getItem('token');
+        
+        // 构建请求头
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        // 如果有token，添加到请求头
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        console.log('加载健身打卡记录，用户ID:', currentUserId);
+        
+        // 使用新的checkin-records端点获取健身打卡记录
+        const recordsResponse = await fetch('/api/checkin-records', {
+          method: 'GET',
+          headers: headers
+        });
+        
+        if (!recordsResponse.ok) throw new Error('网络请求失败');
+        const recordsData = await recordsResponse.json();
+        console.log('获取健身打卡记录响应:', recordsData);
+        
+        if (recordsData.code === 200) {
+          this.checkinRecords = recordsData.data || [];
+          this.checkinRecords.sort((a, b) => new Date(b.time) - new Date(a.time));
+        } else {
+          console.error('获取健身打卡记录失败:', recordsData.message);
+          this.checkinRecords = [];
+        }
+      } catch (error) {
+        console.error('加载健身打卡记录失败:', error);
+        this.checkinRecords = [];
+      }
     },
     checkTodayStatus() {
       const today = new Date().setHours(0, 0, 0, 0);
@@ -391,41 +459,70 @@ export default {
       }
     },
     handleCheckin() {
-      this.$refs.checkinFormRef.validate((valid) => {
+      this.$refs.checkinFormRef.validate(async (valid) => {
         if (valid) {
           this.isLoading = true;
-          setTimeout(() => {
-            const newRecord = {
-              id: Date.now().toString(),
-              time: new Date().toISOString(),
+          try {
+            const currentUserId = this.getCurrentUserId();
+            const token = localStorage.getItem('token');
+            
+            // 准备打卡数据
+            const checkinData = {
+              user_id: currentUserId,
               exercises: this.checkinForm.exercises,
               duration: this.checkinForm.duration,
               location: this.checkinForm.location,
             };
-            this.checkinRecords.unshift(newRecord);
-            this.saveCheckinRecords();
-            this.hasCheckedToday = true;
-            this.todayCheckinTime = this.formatTime(newRecord.time);
-            this.todayCheckinData = {
-              exercises: newRecord.exercises,
-              duration: newRecord.duration,
-              location: newRecord.location,
+            
+            // 构建请求头
+            const headers = {
+              'Content-Type': 'application/json'
             };
+            
+            // 如果有token，添加到请求头
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            console.log('发送健身打卡请求，数据:', checkinData);
+            
+            // 调用专门的健身打卡API保存打卡记录
+            const response = await fetch('/api/checkin', {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify(checkinData),
+            });
+            
+            if (!response.ok) throw new Error('网络请求失败');
+            const data = await response.json();
+            console.log('健身打卡响应:', data);
+            
+            if (data.code === 200) {
+              // 保存成功后，重新加载打卡记录
+              await this.loadCheckinRecords();
+              // 检查今日打卡状态
+              this.checkTodayStatus();
+              // 重置表单
+              this.checkinForm = {
+                exercises: [],
+                duration: null,
+                location: '',
+              };
+              ElMessage.success('健身打卡成功！');
+            } else {
+              console.error('健身打卡失败:', data.message);
+              ElMessage.error('健身打卡失败: ' + data.message);
+            }
+          } catch (error) {
+            console.error('健身打卡失败:', error);
+            ElMessage.error('健身打卡失败，请重试');
+          } finally {
             this.isLoading = false;
-            this.checkinForm = {
-              exercises: [],
-              duration: null,
-              location: '',
-            };
-            ElMessage.success('打卡成功！');
-          }, 1000);
+          }
         } else {
           return false;
         }
       });
-    },
-    saveCheckinRecords() {
-      localStorage.setItem('checkinRecords', JSON.stringify(this.checkinRecords));
     },
     
     // 添加训练内容
