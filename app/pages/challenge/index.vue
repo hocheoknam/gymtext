@@ -36,8 +36,72 @@
     
     <main class="main-content">
       <div class="content-container">
-        <h1>挑战中心</h1>
+        <div class="header-section" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2>挑战中心</h2>
+          <el-button v-if="userRole === 'admin'" type="primary" @click="dialogVisible = true">
+            + 发布新挑战
+          </el-button>
+        </div>
         <p>欢迎来到挑战中心页面，这里将展示各种健身挑战活动。</p>
+        
+        <!-- 发布挑战弹窗 -->
+        <el-dialog
+          v-model="dialogVisible"
+          title="🚀 发布全新健身挑战"
+          width="500px"
+          destroy-on-close
+          class="challenge-dialog"
+        >
+          <el-form :model="form" label-position="top" class="p-4">
+            <el-form-item label="挑战主题" required>
+              <el-input v-model="form.title" placeholder="如：14天夏日燃脂营" prefix-icon="Trophy" />
+            </el-form-item>
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="挑战目标 (天)">
+                  <el-input-number v-model="form.duration_days" :min="1" :step="7" class="w-full" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="开始日期">
+                  <el-date-picker
+                    v-model="form.start_date"
+                    type="date"
+                    placeholder="选择日期"
+                    value-format="YYYY-MM-DD"
+                    class="w-full"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-form-item label="挑战描述">
+              <el-input
+                v-model="form.description"
+                type="textarea"
+                :rows="3"
+                placeholder="写下挑战的规则或激励语..."
+                maxlength="200"
+                show-word-limit
+              />
+            </el-form-item>
+          </el-form>
+
+          <template #footer>
+            <div class="flex justify-end gap-2 px-4 pb-4">
+              <el-button @click="dialogVisible = false">取消</el-button>
+              <el-button
+                type="primary"
+                :loading="submitting"
+                @click="submitChallenge"
+                class="px-8"
+              >
+                确认发布
+              </el-button>
+            </div>
+          </template>
+        </el-dialog>
         
         <!-- 挑战活动列表 -->
         <div v-if="loading" class="loading-container">
@@ -48,48 +112,123 @@
             <el-button type="primary">刷新</el-button>
           </el-empty>
         </div>
-        <div v-else class="challenge-list">
-          <div v-for="challenge in challenges" :key="challenge.id" class="challenge-card">
-            <div class="challenge-header">
-              <h2>{{ challenge.title }}</h2>
-              <span :class="['challenge-badge', getStatusClass(challenge.status)]">{{ getStatusText(challenge.status) }}</span>
-            </div>
-            <div class="challenge-content">
-              <p>{{ challenge.description }}</p>
-              <div class="challenge-progress">
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: calculateProgress(challenge).percentage + '%' }"></div>
+        <div v-else>
+          <!-- 进行中挑战 -->
+          <div v-if="groupedChallenges.ongoing.length > 0" class="challenge-section">
+            <h3 class="section-title">进行中</h3>
+            <div class="challenge-list">
+              <div v-for="challenge in groupedChallenges.ongoing" :key="challenge.id" class="challenge-card">
+                <div class="challenge-header">
+                  <h2>{{ challenge.title }}</h2>
+                  <span :class="['challenge-badge', getStatusClass(getStatusText(challenge.start_date, challenge.target_duration))]">{{ getStatusText(challenge.start_date, challenge.target_duration) }}</span>
                 </div>
-                <span class="progress-text">{{ calculateProgress(challenge).text }}</span>
+                <div class="challenge-content">
+                  <p>{{ challenge.description }}</p>
+                  <div class="challenge-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: calculateProgress(challenge).percentage + '%' }"></div>
+                    </div>
+                    <span class="progress-text">{{ calculateProgress(challenge).text }}</span>
+                  </div>
+                  <div class="challenge-stats">
+                    <div class="stat-item">
+                      <span class="stat-value">{{ challenge.participant_count.toLocaleString() }}</span>
+                      <span class="stat-label">参与人数</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-value">{{ challenge.completion_rate }}%</span>
+                      <span class="stat-label">完成率</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="challenge-actions">
+                  <el-button v-if="joinedStatus[challenge.id]" :type="checkedInStatus[challenge.id] ? 'success' : 'primary'" size="default" @click="navigateTo(`/challenge/${challenge.id}`)">
+                    {{ checkedInStatus[challenge.id] ? '已打卡' : '打卡' }}
+                  </el-button>
+                  <el-button v-else type="primary" size="default" @click="handleOpenDialog(challenge.id, challenge.start_date, challenge.target_duration)">{{ getPrimaryButtonText(challenge.start_date, challenge.target_duration) }}</el-button>
+                  <NuxtLink :to="`/challenge/${challenge.id}`">
+                    <el-button size="default">查看详情</el-button>
+                  </NuxtLink>
+                </div>
               </div>
-              <div class="challenge-stats">
-                <div class="stat-item">
-                  <span class="stat-value">{{ challenge.participant_count.toLocaleString() }}</span>
-                  <span class="stat-label">参与人数</span>
+            </div>
+          </div>
+
+          <!-- 即将开始挑战 -->
+          <div v-if="groupedChallenges.upcoming.length > 0" class="challenge-section">
+            <h3 class="section-title">即将开始</h3>
+            <div class="challenge-list">
+              <div v-for="challenge in groupedChallenges.upcoming" :key="challenge.id" class="challenge-card">
+                <div class="challenge-header">
+                  <h2>{{ challenge.title }}</h2>
+                  <span :class="['challenge-badge', getStatusClass(getStatusText(challenge.start_date, challenge.target_duration))]">{{ getStatusText(challenge.start_date, challenge.target_duration) }}</span>
                 </div>
-                <div class="stat-item">
-                  <template v-if="challenge.status === 'upcoming'">
-                    <span class="stat-label">开始时间：{{ formatDate(challenge.start_date) }}</span>
-                  </template>
-                  <template v-else>
-                    <span class="stat-value">{{ challenge.completion_rate }}%</span>
-                    <span class="stat-label">完成率</span>
-                  </template>
+                <div class="challenge-content">
+                  <p>{{ challenge.description }}</p>
+                  <div class="challenge-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: calculateProgress(challenge).percentage + '%' }"></div>
+                    </div>
+                    <span class="progress-text">{{ calculateProgress(challenge).text }}</span>
+                  </div>
+                  <div class="challenge-stats">
+                    <div class="stat-item">
+                      <span class="stat-value">{{ challenge.participant_count.toLocaleString() }}</span>
+                      <span class="stat-label">参与人数</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">开始时间：{{ formatDate(challenge.start_date) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="challenge-actions">
+                  <el-button v-if="joinedStatus[challenge.id]" type="success" size="default" @click="handleCancelParticipation(challenge.id)">
+                    已参与
+                  </el-button>
+                  <el-button v-else type="primary" size="default" @click="handleOpenDialog(challenge.id, challenge.start_date, challenge.target_duration)">{{ getPrimaryButtonText(challenge.start_date, challenge.target_duration) }}</el-button>
+                  <NuxtLink :to="`/challenge/${challenge.id}`">
+                    <el-button size="default">查看详情</el-button>
+                  </NuxtLink>
                 </div>
               </div>
             </div>
-            <div class="challenge-actions">
-              <el-button v-if="joinedStatus[challenge.id] && challenge.status === 'ongoing'" :type="checkedInStatus[challenge.id] ? 'success' : 'primary'" size="default" @click="navigateTo(`/challenge/${challenge.id}`)">
-              {{ checkedInStatus[challenge.id] ? '已打卡' : '打卡' }}
-            </el-button>
-              <el-button v-else-if="joinedStatus[challenge.id]" type="success" size="default" @click="handleCancelParticipation(challenge.id)">
-              已参与
-            </el-button>
-            <el-button v-else-if="challenge.status !== 'completed'" type="primary" size="default" @click="handleOpenDialog(challenge.id, challenge.status)">{{ getPrimaryButtonText(challenge.status) }}</el-button>
-            <el-button v-else size="default" @click="handleOpenDialog(challenge.id, challenge.status)">{{ getPrimaryButtonText(challenge.status) }}</el-button>
-              <NuxtLink :to="`/challenge/${challenge.id}`">
-                <el-button size="default">查看详情</el-button>
-              </NuxtLink>
+          </div>
+
+          <!-- 已结束挑战 -->
+          <div v-if="groupedChallenges.completed.length > 0" class="challenge-section">
+            <h3 class="section-title">已结束</h3>
+            <div class="challenge-list">
+              <div v-for="challenge in groupedChallenges.completed" :key="challenge.id" class="challenge-card">
+                <div class="challenge-header">
+                  <h2>{{ challenge.title }}</h2>
+                  <span :class="['challenge-badge', getStatusClass(getStatusText(challenge.start_date, challenge.target_duration))]">{{ getStatusText(challenge.start_date, challenge.target_duration) }}</span>
+                </div>
+                <div class="challenge-content">
+                  <p>{{ challenge.description }}</p>
+                  <div class="challenge-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: calculateProgress(challenge).percentage + '%' }"></div>
+                    </div>
+                    <span class="progress-text">{{ calculateProgress(challenge).text }}</span>
+                  </div>
+                  <div class="challenge-stats">
+                    <div class="stat-item">
+                      <span class="stat-value">{{ challenge.participant_count.toLocaleString() }}</span>
+                      <span class="stat-label">参与人数</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-value">{{ challenge.completion_rate }}%</span>
+                      <span class="stat-label">完成率</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="challenge-actions">
+                  <el-button size="default" @click="handleOpenDialog(challenge.id, challenge.start_date, challenge.target_duration)">{{ getPrimaryButtonText(challenge.start_date, challenge.target_duration) }}</el-button>
+                  <NuxtLink :to="`/challenge/${challenge.id}`">
+                    <el-button size="default">查看详情</el-button>
+                  </NuxtLink>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -112,7 +251,8 @@ import {
   Aim,
   ArrowLeft
 } from "@element-plus/icons-vue";
-import { ElButton, ElDialog, ElMessage, ElMessageBox } from "element-plus";
+import { ElButton, ElDialog, ElMessage, ElMessageBox, ElNotification } from "element-plus";
+import dayjs from 'dayjs';
 
 // 统一的用户ID获取函数
 const getCurrentUserId = () => {
@@ -151,6 +291,28 @@ const getCurrentUserId = () => {
 const challenges = ref([]);
 const loading = ref(true);
 
+// 分组挑战
+const groupedChallenges = computed(() => {
+  const today = dayjs().startOf('day');
+  
+  return {
+    ongoing: challenges.value.filter(challenge => {
+      const start = dayjs(challenge.start_date).startOf('day');
+      const end = start.add(challenge.target_duration - 1, 'day');
+      return !today.isBefore(start) && !today.isAfter(end);
+    }),
+    upcoming: challenges.value.filter(challenge => {
+      const start = dayjs(challenge.start_date).startOf('day');
+      return today.isBefore(start);
+    }),
+    completed: challenges.value.filter(challenge => {
+      const start = dayjs(challenge.start_date).startOf('day');
+      const end = start.add(challenge.target_duration - 1, 'day');
+      return today.isAfter(end);
+    })
+  };
+});
+
 // 存储每个挑战的报名状态，格式：{ challengeId: true/false }
 const joinedStatus = ref({});
 // 存储每个挑战的打卡状态，格式：{ challengeId: true/false }
@@ -158,6 +320,19 @@ const checkedInStatus = ref({});
 
 // 弹窗相关变量
 const currentChallengeId = ref(null);
+
+// 用户角色和发布挑战相关变量
+const userRole = ref('');
+const dialogVisible = ref(false);
+const submitting = ref(false);
+
+// 表單初始數據
+const form = ref({
+  title: '',
+  description: '',
+  duration_days: 7,
+  start_date: ''
+});
 
 // 检查打卡状态
 const checkCheckInStatus = async (challengeId) => {
@@ -268,24 +443,75 @@ const checkChallengeStatus = async (challengeId) => {
 
 
 
+// 提交挑戰到後端
+const submitChallenge = async () => {
+  if(!form.value.title || !form.value.start_date) {
+    return ElMessage.error('请填写完整的标题和日期');
+  }
+
+  submitting.value = true;
+  try {
+    // 准备提交数据，确保字段名与后端一致
+    const submitData = {
+      title: form.value.title,
+      description: form.value.description,
+      target_duration: form.value.duration_days, // 转换为后端需要的字段名
+      start_date: form.value.start_date,
+      userRole: userRole.value // 將管理員身份傳給後端校驗
+    };
+
+    const res = await $fetch('/api/create_challenge', {
+      method: 'POST',
+      body: submitData
+    });
+
+    if (res.code === 200) {
+      ElNotification({
+        title: '发布成功',
+        message: '新挑战已同步至所有用户的挑战中心',
+        type: 'success',
+      });
+      dialogVisible.value = false;
+      // 重置表單
+      form.value = { title: '', description: '', duration_days: 7, start_date: '' };
+      // 重新獲取列表，讓新挑戰立刻顯示
+      fetchChallenges();
+    }
+  } catch (err) {
+    ElMessage.error('发布失败，请检查网络');
+  } finally {
+    submitting.value = false;
+  }
+};
+
 // 组件挂载时获取数据
 onMounted(() => {
+  const info = localStorage.getItem('user_info');
+  console.log("目前讀取到的用戶資訊字符串:", info);
+  
+  if (info) {
+    const userInfo = JSON.parse(info);
+    userRole.value = userInfo.role;
+    console.log("當前角色是:", userRole.value);
+  } else {
+    console.error("LocalStorage 裡找不到 user_info！按鈕不會顯示。");
+  }
   fetchChallenges();
 });
 
 // 计算挑战进度
 const calculateProgress = (challenge) => {
-  if (challenge.status === 'ongoing') {
+  if (getChallengeStatus(challenge.start_date, challenge.target_duration).text === '进行中') {
     // 计算已进行天数
-    const startDate = new Date(challenge.start_date);
-    const today = new Date();
-    const daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const startDate = dayjs(challenge.start_date);
+    const today = dayjs();
+    const daysPassed = today.diff(startDate, 'day') + 1;
     const totalDays = challenge.target_duration;
     return {
       percentage: Math.min(Math.round((daysPassed / totalDays) * 100), 100),
       text: `${daysPassed}/${totalDays}天`
     };
-  } else if (challenge.status === 'completed') {
+  } else if (getChallengeStatus(challenge.start_date, challenge.target_duration).text === '已结束') {
     return {
       percentage: 100,
       text: `${challenge.target_duration}/${challenge.target_duration}天`
@@ -298,14 +524,31 @@ const calculateProgress = (challenge) => {
   }
 };
 
+// 获取挑战状态
+const getChallengeStatus = (startDate, targetDuration) => {
+  if (!startDate || !targetDuration) return { text: '未知状态', type: 'info' };
+  const today = dayjs().startOf('day');
+  const start = dayjs(startDate).startOf('day');
+  const end = start.add(targetDuration - 1, 'day');
+
+  if (today.isBefore(start)) {
+    return { text: '即将开始', type: 'info' };
+  } else if (today.isAfter(end)) {
+    return { text: '已结束', type: 'info' };
+  } else {
+    // 只要今天在开始日期和结束日期之间，都应该是「进行中」或「立即打卡」
+    return { text: '进行中', type: 'success' };
+  }
+};
+
 // 获取状态标签类名
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'ongoing':
+const getStatusClass = (statusText) => {
+  switch (statusText) {
+    case '进行中':
       return '';
-    case 'upcoming':
+    case '即将开始':
       return 'upcoming';
-    case 'completed':
+    case '已结束':
       return 'completed';
     default:
       return '';
@@ -313,27 +556,19 @@ const getStatusClass = (status) => {
 };
 
 // 获取状态标签文本
-const getStatusText = (status) => {
-  switch (status) {
-    case 'ongoing':
-      return '进行中';
-    case 'upcoming':
-      return '即将开始';
-    case 'completed':
-      return '已结束';
-    default:
-      return '未知状态';
-  }
+const getStatusText = (startDate, targetDuration) => {
+  return getChallengeStatus(startDate, targetDuration).text;
 };
 
 // 获取主要按钮文本
-const getPrimaryButtonText = (status) => {
+const getPrimaryButtonText = (startDate, targetDuration) => {
+  const status = getChallengeStatus(startDate, targetDuration).text;
   switch (status) {
-    case 'ongoing':
+    case '进行中':
       return '立即参与';
-    case 'upcoming':
+    case '即将开始':
       return '预约参与';
-    case 'completed':
+    case '已结束':
       return '查看结果';
     default:
       return '参与';
@@ -341,8 +576,8 @@ const getPrimaryButtonText = (status) => {
 };
 
 // 显示参与挑战弹窗
-const handleOpenDialog = (id, status) => {
-  if (status === 'completed') {
+const handleOpenDialog = (id, startDate, targetDuration) => {
+  if (getChallengeStatus(startDate, targetDuration).text === '已结束') {
     // 已结束的挑战，直接跳转到详情页
     navigateTo(`/challenge/${id}`);
   } else {
@@ -478,8 +713,7 @@ const handleCancelParticipation = (id) => {
 // 格式化日期函数
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN');
+  return dayjs(dateString).format('YYYY/MM/DD');
 };
 </script>
 
@@ -489,6 +723,19 @@ const formatDate = (dateString) => {
   background-color: #f5f7fa;
   display: flex;
   flex-direction: column;
+}
+
+.challenge-section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #409eff;
 }
 
 .top-nav {
@@ -588,11 +835,60 @@ const formatDate = (dateString) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.content-container h1 {
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header-actions h1 {
   font-size: 24px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 16px;
+  margin: 0;
+}
+
+.challenge-dialog :deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.challenge-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px 15px;
+  border-bottom: 1px solid #f0f2f5;
+  background: #fafafa;
+}
+
+.challenge-dialog :deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.challenge-dialog :deep(.el-form-item__label) {
+  font-weight: 600;
+  color: #303133;
+  padding-bottom: 8px;
+}
+
+.challenge-dialog :deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+.challenge-dialog :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  resize: none;
+}
+
+.challenge-dialog :deep(.el-input-number) {
+  border-radius: 8px;
+}
+
+.challenge-dialog :deep(.el-date-picker__wrapper) {
+  border-radius: 8px;
 }
 
 .content-container p {

@@ -66,11 +66,11 @@
         <div v-else class="challenge-detail">
           <h1>{{ challenge.title }}</h1>
           <div class="challenge-meta">
-            <span :class="['challenge-badge', getStatusClass(challenge.status)]">
-              {{ getStatusText(challenge.status) }}
+            <span :class="['challenge-badge', getStatusClass(getChallengeStatus(challenge.start_date, challenge.target_duration).text)]">
+              {{ getChallengeStatus(challenge.start_date, challenge.target_duration).text }}
             </span>
             <span class="challenge-date">
-              {{ formatDate(challenge.start_date) }} - {{ formatDate(challenge.end_date) }}
+              {{ getDateRange(challenge.start_date, challenge.target_duration) }}
             </span>
           </div>
           
@@ -104,11 +104,11 @@
             <el-button v-else-if="isParticipated" type="success" size="default" @click="handleCancelParticipation(challenge.id)">
               已报名
             </el-button>
-            <el-button v-else-if="challenge.status !== 'completed'" type="primary" size="default" @click="handleJoinChallenge(challenge.id)">
-              {{ getPrimaryButtonText(challenge.status) }}
+            <el-button v-else-if="getChallengeStatus(challenge.start_date, challenge.target_duration).text !== '已结束'" type="primary" size="default" @click="handleJoinChallenge(challenge.id)">
+              {{ getPrimaryButtonText(challenge.start_date, challenge.target_duration) }}
             </el-button>
             <el-button v-else type="primary" size="default" @click="handleJoinChallenge(challenge.id)">
-              {{ getPrimaryButtonText(challenge.status) }}
+              {{ getPrimaryButtonText(challenge.start_date, challenge.target_duration) }}
             </el-button>
           </div>
         </div>
@@ -122,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute, navigateTo } from "nuxt/app";
 import {
   HomeFilled,
@@ -132,6 +132,38 @@ import {
   ArrowLeft
 } from "@element-plus/icons-vue";
 import { ElMessage, ElButton, ElDialog, ElMessageBox } from "element-plus";
+import dayjs from 'dayjs';
+
+// 日期处理工具函数
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  return dayjs(dateString).format('YYYY/MM/DD');
+};
+
+// 计算日期范围
+const getDateRange = (startDate, duration) => {
+  if (!startDate || !duration) return '';
+  const start = dayjs(startDate);
+  const end = start.add(duration - 1, 'day');
+  return `${start.format('YYYY/MM/DD')} - ${end.format('YYYY/MM/DD')}`;
+};
+
+// 获取挑战状态
+const getChallengeStatus = (startDate, targetDuration) => {
+  if (!startDate || !targetDuration) return { text: '未知状态', type: 'info' };
+  const today = dayjs().startOf('day');
+  const start = dayjs(startDate).startOf('day');
+  const end = start.add(targetDuration - 1, 'day');
+
+  if (today.isBefore(start)) {
+    return { text: '即将开始', type: 'info' };
+  } else if (today.isAfter(end)) {
+    return { text: '已结束', type: 'info' };
+  } else {
+    // 只要今天在开始日期和结束日期之间，都应该是「进行中」或「立即打卡」
+    return { text: '进行中', type: 'success' };
+  }
+};
 
 // 统一的用户ID获取函数
 const getCurrentUserId = () => {
@@ -429,7 +461,7 @@ const handleCheckIn = async () => {
 
 // 显示参与挑战弹窗
 const handleJoinChallenge = (id) => {
-  if (challenge.value && challenge.value.status === 'completed') {
+  if (challenge.value && getChallengeStatus(challenge.value.start_date, challenge.value.target_duration).text === '已结束') {
     // 已结束的挑战，显示结果
     showChallengeResult();
   } else {
@@ -634,48 +666,31 @@ onMounted(() => {
   checkCheckInStatus();
 });
 
-// 格式化日期
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN');
-};
+
 
 // 获取状态标签类名
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'ongoing':
+const getStatusClass = (statusText) => {
+  switch (statusText) {
+    case '进行中':
       return '';
-    case 'upcoming':
+    case '即将开始':
       return 'upcoming';
-    case 'completed':
+    case '已结束':
       return 'completed';
     default:
       return '';
   }
 };
 
-// 获取状态标签文本
-const getStatusText = (status) => {
-  switch (status) {
-    case 'ongoing':
-      return '进行中';
-    case 'upcoming':
-      return '即将开始';
-    case 'completed':
-      return '已结束';
-    default:
-      return '未知状态';
-  }
-};
-
 // 获取主要按钮文本
-const getPrimaryButtonText = (status) => {
+const getPrimaryButtonText = (startDate, targetDuration) => {
+  const status = getChallengeStatus(startDate, targetDuration).text;
   switch (status) {
-    case 'ongoing':
+    case '进行中':
       return '立即参与';
-    case 'upcoming':
+    case '即将开始':
       return '预约参与';
-    case 'completed':
+    case '已结束':
       return '查看结果';
     default:
       return '参与';

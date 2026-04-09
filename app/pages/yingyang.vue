@@ -52,8 +52,8 @@
                   <div class="food-info">
                     <h4>{{ record.name }}</h4>
                     <p>分量: {{ record.portion }} {{ record.unit }}</p>
-                    <p>热量: {{ record.calories }} kcal</p>
-                    <p>蛋白质: {{ record.protein }} g | 碳水: {{ record.carbs }} g | 脂肪: {{ record.fat }} g</p>
+                    <p>热量: {{ (record.calories || 0).toFixed(1) }} kcal</p>
+                    <p>蛋白质: {{ (record.protein || 0).toFixed(1) }} g | 碳水: {{ (record.carbs || 0).toFixed(1) }} g | 脂肪: {{ (record.fat || 0).toFixed(1) }} g</p>
                   </div>
                   <!-- 操作按钮组 -->
                   <el-button-group>
@@ -113,7 +113,7 @@
                 />
                 <span class="unit">kcal</span>
               </div>
-              <span v-else>{{ totalNutrition.calories }} / {{ dailyGoal.calories }} kcal</span>
+              <span v-else>{{ (totalNutrition.calories || 0).toFixed(1) }} / {{ dailyGoal.calories }} kcal</span>
             </div>
           </div>
           <!-- 蛋白质仪表盘 -->
@@ -131,7 +131,7 @@
                 />
                 <span class="unit">g</span>
               </div>
-              <span v-else>{{ totalNutrition.protein }} / {{ dailyGoal.protein }} g</span>
+              <span v-else>{{ (totalNutrition.protein || 0).toFixed(1) }} / {{ dailyGoal.protein }} g</span>
             </div>
           </div>
           <!-- 碳水化合物仪表盘 -->
@@ -149,7 +149,7 @@
                 />
                 <span class="unit">g</span>
               </div>
-              <span v-else>{{ totalNutrition.carbs }} / {{ dailyGoal.carbs }} g</span>
+              <span v-else>{{ (totalNutrition.carbs || 0).toFixed(1) }} / {{ dailyGoal.carbs }} g</span>
             </div>
           </div>
           <!-- 脂肪仪表盘 -->
@@ -167,7 +167,7 @@
                 />
                 <span class="unit">g</span>
               </div>
-              <span v-else>{{ totalNutrition.fat }} / {{ dailyGoal.fat }} g</span>
+              <span v-else>{{ (totalNutrition.fat || 0).toFixed(1) }} / {{ dailyGoal.fat }} g</span>
             </div>
           </div>
         </div>
@@ -567,10 +567,10 @@ const pieChartData = computed(() => {
 // 计算属性：营养详情表格数据
 const nutritionDetails = computed(() => {
   return [
-    { name: '热量', amount: totalNutrition.value.calories, unit: 'kcal', percentage: caloriesPercentage.value },
-    { name: '蛋白质', amount: totalNutrition.value.protein, unit: 'g', percentage: proteinPercentage.value },
-    { name: '碳水化合物', amount: totalNutrition.value.carbs, unit: 'g', percentage: carbsPercentage.value },
-    { name: '脂肪', amount: totalNutrition.value.fat, unit: 'g', percentage: fatPercentage.value }
+    { name: '热量', amount: Number(totalNutrition.value.calories).toFixed(1), unit: 'kcal', percentage: caloriesPercentage.value },
+    { name: '蛋白质', amount: Number(totalNutrition.value.protein).toFixed(1), unit: 'g', percentage: proteinPercentage.value },
+    { name: '碳水化合物', amount: Number(totalNutrition.value.carbs).toFixed(1), unit: 'g', percentage: carbsPercentage.value },
+    { name: '脂肪', amount: Number(totalNutrition.value.fat).toFixed(1), unit: 'g', percentage: fatPercentage.value }
   ]
 })
 
@@ -700,6 +700,9 @@ async function saveFood() {
           portion: formData.value.portion,
           unit: formData.value.unit,
           calories: formData.value.calories,
+          protein: formData.value.protein,
+          carbs: formData.value.carbs,
+          fat: formData.value.fat,
           time: foodData.time,
           total_calories: formData.value.calories,
           user_id: currentUserId,
@@ -765,21 +768,37 @@ async function saveFood() {
 }
 
 // 删除食物记录
-function deleteFood(id) {
-  ElMessageBox.confirm('确定要删除这条食物记录吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    // 确认删除后过滤掉该记录
-    foodRecords.value = foodRecords.value.filter(record => record.id !== id);
-    // 按时间降序排序，确保最新时间在最上面
-    foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
-    saveFoodRecords(); // 保存更新后的列表
-    ElMessage.success('删除成功');
-  }).catch(() => {
-    // 取消删除时不执行任何操作
-  });
+async function deleteFood(id) {
+  try {
+    // 1. 弹出确认框
+    await ElMessageBox.confirm('确定要永久删除这条记录吗？', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    // 2. 发送 DELETE 请求到后端
+    const response = await fetch(`/api/food-records?id=${id}`, {
+      method: 'DELETE'
+    });
+
+    const resData = await response.json();
+
+    if (resData.success) {
+      // 3. 后端删除成功后，才更新前端 UI 列表
+      foodRecords.value = foodRecords.value.filter(record => record.id !== id);
+      // 按时间降序排序，确保最新时间在最上面
+      foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
+      saveFoodRecords(); // 更新本地缓存
+      ElMessage.success('数据库记录已删除');
+    } else {
+      ElMessage.error('删除失败：' + resData.statusMessage);
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除过程出错:', error);
+    }
+  }
 }
 
 // --- 新增函数区域开始 ---
@@ -817,7 +836,7 @@ const searchFood = (query) => {
 }
 
 // 3. 核心：选中食物后的自动填充
-const handleFoodSelect = (id) => {
+const handleFoodSelect = async (id) => {
   if (!id) {
     // 清空选择时重置数据
     formData.value.name = ''
@@ -833,33 +852,78 @@ const handleFoodSelect = (id) => {
   if (selectedFood) {
     formData.value.name = selectedFood.name
     
-    const per100 = {
-      cal: selectedFood.calories_per_100g || 0,
-      pro: selectedFood.protein_per_100g || 0,
-      carb: selectedFood.carbs_per_100g || 0,
-      fat: selectedFood.fat_per_100g || 0
+    // 尝试获取上一次记录的数据
+    await fetchLastFoodRecord(selectedFood.name)
+    
+    // 如果没有上一次记录，使用食物库中的默认数据
+    if (formData.value.calories === 0) {
+      calculateNutritionByPortion(selectedFood);
     }
-
-    // 按分量换算 (假设单位是 g)
-    const ratio = (formData.value.portion || 100) / 100
-    
-    formData.value.calories = Number((per100.cal * ratio).toFixed(1))
-    formData.value.protein = Number((per100.pro * ratio).toFixed(1))
-    formData.value.carbs = Number((per100.carb * ratio).toFixed(1))
-    formData.value.fat = Number((per100.fat * ratio).toFixed(1))
-    
-    ElMessage.success(`已填充 ${selectedFood.name} 数据`)
   }
 }
 
-// 4. 监听分量变化，动态重算
+// 4. 提取一个纯粹的换算函数，不要带 API 请求
+const calculateNutritionByPortion = (foodItem) => {
+  const ratio = (formData.value.portion || 100) / 100;
+  formData.value.calories = Number((foodItem.calories_per_100g * ratio).toFixed(1));
+  formData.value.protein = Number((foodItem.protein_per_100g * ratio).toFixed(1));
+  formData.value.carbs = Number((foodItem.carbs_per_100g * ratio).toFixed(1));
+  formData.value.fat = Number((foodItem.fat_per_100g * ratio).toFixed(1));
+}
+
+// 5. 获取上一次记录的数据
+const fetchLastFoodRecord = async (foodName) => {
+  try {
+    // 从localStorage获取用户ID，与saveFood函数保持一致
+    let currentUserId = null;
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // 解析Token
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      } catch (error) {
+        console.error('解析Token失败:', error);
+      }
+    }
+    // 如果没有Token或解析失败，使用默认用户ID 3
+    if (!currentUserId) {
+      currentUserId = 3;
+    }
+    
+    const { data, code } = await $fetch('/api/get_last_food_record', {
+      params: {
+        food_name: foodName,
+        user_id: currentUserId
+      }
+    });
+
+    if (code === 200 && data) {
+      // 只更新表单中的数值，不改变当前正在记录的日期和时间
+      formData.value.portion = data.portion;
+      formData.value.calories = data.total_calories;
+      formData.value.protein = data.total_protein;
+      formData.value.carbs = data.total_carbs;
+      formData.value.fat = data.total_fat;
+      
+      ElMessage.success(`已自动加载上次“${foodName}”的记录数值`);
+    }
+  } catch (error) {
+    // 如果没有历史记录，保持当前输入或默认值即可，不需要报错
+    console.log("未发现历史数据，使用默认值");
+  }
+}
+
+// 6. 监听分量变化，动态重算
 const onPortionChange = () => {
-  if (formData.value.selectedFoodId) {
-    handleFoodSelect(formData.value.selectedFoodId)
+  const selectedFood = allFoodDatabase.value.find(item => item.id === formData.value.selectedFoodId);
+  if (selectedFood) {
+    // 仅仅重新换算，不再请求后端历史数据
+    calculateNutritionByPortion(selectedFood);
   }
 }
 
-// 5. 切换目标编辑模式
+// 7. 切换目标编辑模式
 const toggleGoalEditMode = () => {
   if (isGoalEditMode.value) {
     // 保存编辑，切换到非编辑模式

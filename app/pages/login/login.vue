@@ -55,8 +55,6 @@
               </el-button>
             </el-form-item>
           </el-form>
-
-          <p>{{ loginResult }}</p>
         </div>
 
         <!-- 注册表单 -->
@@ -129,9 +127,6 @@
               </el-button>
             </el-form-item>
           </el-form>
-
-          <p>{{ registerResult }}</p>
-          <p>{{ sendCodeResult }}</p>
         </div>
       </div>
     </div>
@@ -193,10 +188,24 @@ async function handleLogin() {
     if (response.success) {
       ElMessage.success("登录成功");
       loginResult.value = `登录成功: ${JSON.stringify(response)}`;
+      // 存储用户信息到localStorage
+      if (response.user) {
+        localStorage.setItem('user_info', JSON.stringify({
+          id: response.user.id,
+          username: response.user.username,
+          role: response.user.role // 确保后端有传回这个
+        }));
+        console.log('user_info已存储到localStorage:', response.user);
+      }
       // 存储token到localStorage
       if (response.token) {
         localStorage.setItem('token', response.token);
         console.log('token已存储到localStorage:', response.token);
+      }
+      // 存储user_id到localStorage
+      if (response.user && response.user.id) {
+        localStorage.setItem('user_id', response.user.id);
+        console.log('user_id已存储到localStorage:', response.user.id);
       }
       // 这里可以添加登录成功后的跳转逻辑
       useRouter().push("/home");

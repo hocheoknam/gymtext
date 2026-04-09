@@ -16,6 +16,14 @@ import { onMounted, onBeforeUnmount, ref, nextTick } from "vue";
 const chartRef = ref(null);
 let myChart = null;
 
+// 清理函数 - 移到onMounted之前
+onBeforeUnmount(() => {
+  if (myChart) {
+    myChart.dispose();
+    console.log("🧹 ECharts disposed");
+  }
+});
+
 onMounted(async () => {
   // 等待 DOM 真正就绪
   await nextTick();
@@ -77,13 +85,6 @@ onMounted(async () => {
     });
   } catch (err) {
     console.error("💥 ECharts init error:", err);
-  }
-});
-
-onBeforeUnmount(() => {
-  if (myChart) {
-    myChart.dispose();
-    console.log("🧹 ECharts disposed");
   }
 });
 </script>

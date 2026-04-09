@@ -23,12 +23,7 @@ export default defineEventHandler(async (event) => {
         updated_at
       FROM challenge_activities
       ORDER BY 
-        CASE status 
-          WHEN 'ongoing' THEN 1 
-          WHEN 'upcoming' THEN 2 
-          WHEN 'completed' THEN 3 
-        END,
-        created_at DESC
+        start_date ASC
     `;
 
     return {

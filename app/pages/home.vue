@@ -15,22 +15,22 @@
         <!-- 中间导航菜单 -->
         <nav class="nav-menu">
           <ul class="nav-list">
-            <li class="nav-item active">
-              <a href="/home" class="nav-link">首页</a>
-            </li>
-            <li class="nav-item">
-              <a href="/action" class="nav-link">训练库</a>
-            </li>
-            <li class="nav-item">
-              <a href="/eat" class="nav-link">饮食指南</a>
-            </li>
-            <li class="nav-item">
-              <a href="/challenge" class="nav-link">挑战中心</a>
-            </li>
-            <li class="nav-item">
-              <a href="/data" class="nav-link">数据中心</a>
-            </li>
-          </ul>
+              <li class="nav-item active">
+                <NuxtLink to="/home" class="nav-link">首页</NuxtLink>
+              </li>
+              <li class="nav-item">
+                <NuxtLink to="/action" class="nav-link">训练库</NuxtLink>
+              </li>
+              <li class="nav-item">
+                <NuxtLink to="/eat" class="nav-link">饮食指南</NuxtLink>
+              </li>
+              <li class="nav-item">
+                <NuxtLink to="/challenge" class="nav-link">挑战中心</NuxtLink>
+              </li>
+              <li class="nav-item">
+                <NuxtLink to="/data" class="nav-link">数据中心</NuxtLink>
+              </li>
+            </ul>
         </nav>
 
         <!-- 右侧功能区 -->
@@ -42,88 +42,6 @@
     <!-- 主内容区域 -->
     <main class="main-content">
       <div class="content-container">
-        <!-- 体重数据展示卡片 -->
-        <div class="weight-card">
-          <div class="weight-header">
-            <h3 class="weight-title">个人体重数据</h3>
-            <button class="edit-btn" @click="editWeightData">
-              <el-icon size="16"><Edit /></el-icon>
-            </button>
-          </div>
-
-          <div class="weight-data">
-            <!-- 当前体重 -->
-            <div class="weight-item current-weight">
-              <div class="weight-label">当前体重</div>
-              <div class="weight-value">
-                {{ formatNumber(currentWeight) }}<span class="weight-unit">kg</span>
-              </div>
-              <div
-                class="weight-trend"
-                :class="weightChange < 0 ? 'down' : 'up'"
-              >
-                {{ weightChange < 0 ? "↓" : "↑" }}
-                {{ formatNumber(Math.abs(weightChange)) }}kg
-              </div>
-            </div>
-
-            <!-- 体重对比图表 -->
-            <div id="weight-chart" class="chart-container"></div>
-          </div>
-
-          <!-- 体脂率信息 -->
-          <div class="body-fat">
-            <div class="fat-item">
-              <span class="fat-label">体脂率</span>
-              <span class="fat-value">{{ formatNumber(bodyFat) }}%</span>
-            </div>
-          </div>
-
-          <!-- 体重记录管理 -->
-          <div class="weight-records-container">
-            <div class="section-header" @click="isRecordsExpanded = !isRecordsExpanded">
-              <h3>体重记录</h3>
-              <div class="header-actions">
-                <button class="add-btn" @click.stop="openAddWeightRecordModal">
-                  <el-icon size="16"><Plus /></el-icon>
-                  添加记录
-                </button>
-                <button class="expand-btn">
-                  <el-icon size="16"><ArrowDown v-if="isRecordsExpanded" /><ArrowUp v-else /></el-icon>
-                </button>
-              </div>
-            </div>
-            
-            <div v-if="isRecordsExpanded">
-              <div v-if="weightRecords.length === 0" class="no-records">
-                <p>暂无体重记录，点击上方按钮添加</p>
-              </div>
-              
-              <div v-else class="weight-records-list">
-                <div v-for="(record, index) in weightRecords" :key="index" class="record-item">
-                  <div class="record-info">
-                <div class="record-date">{{ record.date }}</div>
-                <div class="record-weight">{{ formatNumber(record.weight) }} kg</div>
-                <div class="record-body-fat" v-if="record.bodyFat">体脂率: {{ formatNumber(record.bodyFat) }}%</div>
-              </div>
-                  <div class="record-actions">
-                    <button class="edit-btn" @click="openEditWeightRecordModal(index)">
-                      <el-icon size="14"><Edit /></el-icon>
-                      编辑
-                    </button>
-                    <button class="delete-btn" @click="deleteWeightRecord(index)">
-                      <el-icon size="14"><Delete /></el-icon>
-                      删除
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-
         <!-- 快捷功能入口 -->
         <div class="quick-actions">
           <div class="action-cards">
@@ -155,6 +73,255 @@
             </div>
           </div>
         </div>
+
+        <!-- 今日打卡区域 -->
+        <el-card class="today-checkin-card" v-loading="isLoadingData">
+          <template #header>
+            <div class="card-header">
+              <span>今日打卡</span>
+              <span class="date-info">{{ todayDate }}</span>
+            </div>
+          </template>
+
+          <div class="checkin-content">
+            <div v-if="!isTodayCheckedIn" class="uncheck-status">
+              <el-icon class="uncheck-icon"><CircleClose /></el-icon>
+              <p>今日未打卡</p>
+
+              <!-- 打卡表单 -->
+                <client-only>
+                  <el-form
+                    :model="checkinForm"
+                    :rules="rules"
+                    ref="checkinFormRef"
+                    class="checkin-form"
+                  >
+                    <el-form-item label="训练内容" prop="exercises">
+                      <div class="exercise-select-container">
+                        <el-select
+                          v-model="selectedExercise"
+                          placeholder="请选择或输入训练内容"
+                          style="flex: 1"
+                          :loading="isLoadingExercises"
+                          filterable
+                          allow-create
+                        >
+                          <el-option
+                            v-for="item in exerciseList"
+                            :key="item.id"
+                            :label="item.name"
+                            :value="item.name"
+                          >
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                              <span>{{ item.name }}</span>
+                              <span style="color: #909399; font-size: 12px;">{{ item.category }}</span>
+                            </div>
+                          </el-option>
+                        </el-select>
+                        <el-button type="primary" @click="addExercise" style="margin-left: 10px;">添加</el-button>
+                      </div>
+                    </el-form-item>
+                    
+                    <!-- 训练内容详情 -->
+                    <div v-if="checkinForm.exercises.length > 0" class="exercise-details">
+                      <h3>训练详情</h3>
+                      <div v-for="(exercise, index) in checkinForm.exercises" :key="index" class="exercise-item">
+                        <div class="exercise-info">
+                          <span class="exercise-name">{{ exercise.name }}</span>
+                          <el-button type="danger" size="small" @click="removeExercise(index)">删除</el-button>
+                        </div>
+                        <div class="sets-reps-container">
+                          <el-form-item label="组数">
+                            <el-input-number v-model="exercise.sets" :min="1" :max="20" :step="1" style="width: 100px;"></el-input-number>
+                          </el-form-item>
+                          <el-form-item label="次数">
+                            <el-input-number v-model="exercise.reps" :min="1" :max="100" :step="1" style="width: 100px;"></el-input-number>
+                          </el-form-item>
+                        </div>
+                      </div>
+                    </div>
+                    <el-form-item label="训练时长" prop="duration">
+                      <div class="duration-container">
+                        <el-input-number
+                          v-model="checkinForm.duration"
+                          :min="1"
+                          :max="600"
+                          :step="5"
+                          placeholder="请输入训练时长"
+                          class="duration-input"
+                        ></el-input-number>
+                        <span class="duration-unit">分钟</span>
+                      </div>
+                    </el-form-item>
+                    <el-form-item label="打卡位置" prop="location">
+                      <div class="location-input-container">
+                        <el-input
+                          v-model="checkinForm.location"
+                          placeholder="请输入打卡位置"
+                          class="location-input"
+                        ></el-input>
+                        <el-button
+                          type="primary"
+                          @click="getCurrentLocation"
+                          :disabled="isGettingLocation"
+                          class="get-location-btn"
+                        >
+                          {{ isGettingLocation ? '获取中...' : '获取位置' }}
+                        </el-button>
+                      </div>
+                      <div v-if="locationAccuracy !== null" class="location-accuracy">
+                        <el-icon><InfoFilled /></el-icon>
+                        <span>定位精度：{{ locationAccuracy }} 米</span>
+                      </div>
+                      <div class="location-tip">
+                        <el-icon><InfoFilled /></el-icon>
+                        <span>提示：如果定位不准确，可手动输入位置</span>
+                      </div>
+                    </el-form-item>
+                  </el-form>
+                  <template #placeholder>
+                    <div class="skeleton-container">
+                      <el-skeleton :rows="3" animated />
+                    </div>
+                  </template>
+                </client-only>
+              <el-button
+                type="primary"
+                size="large"
+                @click="handleCheckin"
+                :loading="isLoading"
+                style="margin-top: 20px;"
+              >
+                立即打卡
+              </el-button>
+            </div>
+
+            <div v-else class="achievement-status">
+              <div class="success-header">
+                <el-result icon="success" title="今日训练已达成" sub-title="你是最棒的！">
+                </el-result>
+              </div>
+              
+              <div class="achievement-grid">
+                <div class="achieve-item">
+                  <span class="label">消耗热量</span>
+                  <span class="value">{{ todayAchievement?.calories }} kcal</span>
+                </div>
+                <div class="achieve-item">
+                  <span class="label">训练时长</span>
+                  <span class="value">{{ todayAchievement?.duration }} min</span>
+                </div>
+              </div>
+
+              <div class="weekly-checkin">
+                <h4>本周运动进度</h4>
+                <div class="days-container">
+                  <div v-for="day in weekStatus" :key="day.name" class="day-item">
+                    <div class="day-label">{{ day.name }}</div>
+                    
+                    <div class="status-box" :class="day.status">
+                      <el-icon v-if="day.status === 'checked'">
+                        <Check />
+                      </el-icon>
+                      
+                      <el-icon v-if="day.status === 'missed'">
+                        <Close />
+                      </el-icon>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-card>
+
+        <!-- 打卡统计区域 -->
+        <el-row :gutter="20" class="stats-section">
+          <el-col :span="8">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-number">{{ totalCheckins }}</div>
+                <div class="stat-label">总打卡次数</div>
+              </div>
+            </el-card>
+          </el-col>
+          <el-col :span="8">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-number">{{ currentStreak }}</div>
+                <div class="stat-label">当前连续天数</div>
+              </div>
+            </el-card>
+          </el-col>
+          <el-col :span="8">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-number">{{ bestStreak }}</div>
+                <div class="stat-label">最长连续天数</div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <!-- 打卡记录列表 -->
+        <el-card class="records-card">
+          <template #header>
+            <div class="card-header">
+              <span>打卡记录</span>
+            </div>
+          </template>
+
+          <div v-if="checkinRecords.length > 0">
+            <el-timeline>
+              <el-timeline-item
+                v-for="record in checkinRecords"
+                :key="record.id"
+                :timestamp="formatDateTime(record.time)"
+                placement="top"
+              >
+                <el-card>
+                  <div class="record-content">
+                    <div class="record-info">
+                      <div class="record-title">健身打卡</div>
+                      <div class="record-date">{{ formatDate(record.time) }}</div>
+                      <div class="record-time">{{ formatTime(record.time) }}</div>
+                    </div>
+                    <div class="record-details">
+                      <div class="exercise-info">
+                        <div v-if="Array.isArray(record.exercises) && record.exercises.length > 0">
+                          <p class="exercise-content">
+                            <span class="label">训练内容：</span>
+                          </p>
+                          <div class="exercise-list">
+                            <div v-for="(exercise, index) in record.exercises" :key="index" class="record-exercise-item">
+                              <span class="exercise-name">{{ exercise.name || exercise }}</span>
+                              <span v-if="exercise.sets && exercise.reps" class="exercise-sets-reps">({{ exercise.sets }}组 × {{ exercise.reps }}次)</span>
+                            </div>
+                          </div>
+                        </div>
+                        <p v-else-if="record.exercise" class="exercise-content">
+                          <span class="label">训练内容：</span>
+                          <span class="value">{{ record.exercise }}</span>
+                        </p>
+                        <p v-if="record.duration" class="exercise-duration">
+                          <span class="label">训练时长：</span>
+                          <span class="value">{{ record.duration }} 分钟</span>
+                        </p>
+                        <p v-if="record.location" class="exercise-location">
+                          <span class="label">打卡位置：</span>
+                          <span class="value">{{ record.location }}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-timeline-item>
+            </el-timeline>
+          </div>
+          <div v-else class="no-records">
+            <el-empty description="暂无打卡记录" />
+          </div>
+        </el-card>
       </div>
     </main>
 
@@ -199,136 +366,14 @@
     </footer>
   </div>
 
-  <!-- 体重数据编辑弹窗 -->
-  <div v-if="isEditModalVisible" class="modal-overlay" @click="closeEditModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h3 class="modal-title">编辑体重数据</h3>
-        <button class="modal-close" @click="closeEditModal">
-          <el-icon size="20"><Close /></el-icon>
-        </button>
-      </div>
 
-      <div class="modal-body">
-        <!-- 当前体重输入 -->
-        <div class="form-group">
-          <label for="currentWeight" class="form-label">当前体重 (kg)</label>
-          <input
-            id="currentWeight"
-            v-model.number="editCurrentWeight"
-            type="number"
-            step="0.1"
-            min="30"
-            max="200"
-            class="form-input"
-            placeholder="请输入当前体重"
-          />
-        </div>
-
-        <!-- 目标体重输入 -->
-        <div class="form-group">
-          <label for="targetWeight" class="form-label">目标体重 (kg)</label>
-          <input
-            id="targetWeight"
-            v-model.number="editTargetWeight"
-            type="number"
-            step="0.1"
-            min="30"
-            max="200"
-            class="form-input"
-            placeholder="请输入目标体重"
-          />
-        </div>
-
-        <!-- 体脂率输入 -->
-        <div class="form-group">
-          <label for="bodyFat" class="form-label">体脂率 (%)</label>
-          <input
-            id="bodyFat"
-            v-model.number="editBodyFat"
-            type="number"
-            step="0.1"
-            min="5"
-            max="40"
-            class="form-input"
-            placeholder="请输入体脂率"
-          />
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-        <button class="btn btn-primary" @click="saveWeightData">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 体重记录编辑弹窗 -->
-  <div v-if="isWeightRecordModalVisible" class="modal-overlay" @click="closeWeightRecordModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h3 class="modal-title">{{ editingRecord !== null ? '编辑体重记录' : '添加体重记录' }}</h3>
-        <button class="close-btn" @click="closeWeightRecordModal">
-          <el-icon size="20"><Close /></el-icon>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <!-- 日期时间输入 -->
-        <div class="form-group">
-          <label for="recordDate" class="form-label">日期时间</label>
-          <input
-            id="recordDate"
-            v-model="newWeightRecord.date"
-            type="datetime-local"
-            class="form-input"
-            placeholder="请选择日期时间"
-          />
-        </div>
-
-        <!-- 体重输入 -->
-        <div class="form-group">
-          <label for="recordWeight" class="form-label">体重 (kg)</label>
-          <input
-            id="recordWeight"
-            v-model.number="newWeightRecord.weight"
-            type="number"
-            step="0.1"
-            min="30"
-            max="200"
-            class="form-input"
-            placeholder="请输入体重"
-          />
-        </div>
-
-        <!-- 体脂率输入 -->
-        <div class="form-group">
-          <label for="recordBodyFat" class="form-label">体脂率 (%)</label>
-          <input
-            id="recordBodyFat"
-            v-model.number="newWeightRecord.bodyFat"
-            type="number"
-            step="0.1"
-            min="5"
-            max="40"
-            class="form-input"
-            placeholder="请输入体脂率"
-          />
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="cancel-btn" @click="closeWeightRecordModal">取消</button>
-        <button class="save-btn" @click="saveWeightRecord">保存</button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
 // 导入必要的函数
-import { ref, onMounted, watchEffect, onBeforeUnmount } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { navigateTo } from "nuxt/app";
+import { ElMessage, ElForm, ElFormItem, ElSelect, ElOption, ElButton, ElInputNumber, ElInput, ElCard, ElRow, ElCol, ElTimeline, ElTimelineItem, ElEmpty } from "element-plus";
 // 导入Element Plus图标组件
 import {
   HomeFilled,
@@ -337,232 +382,581 @@ import {
   Bell,
   User,
   Edit,
-  ArrowDown,
-  ArrowUp,
   Aim,
   VideoPlay,
   ShoppingCart,
   Calendar,
   List,
   Close,
+  Check,
   Food,
   ChatLineSquare,
   Tools,
-  Plus,
-  Delete
+  CircleCheck,
+  CircleClose,
+  InfoFilled
 } from "@element-plus/icons-vue";
-// 导入图表组件
 
-// 定义响应式数据
-const currentWeight = ref(68);
-const targetWeight = ref(65);
-const bodyFat = ref(18);
-const weightChange = ref(-0.5);
-
-// 体重编辑弹窗相关状态
-const isEditModalVisible = ref(false);
-const editCurrentWeight = ref(68);
-const editTargetWeight = ref(65);
-const editBodyFat = ref(18);
-
-// 体重记录相关状态 - 响应式数据
-const weightRecords = ref([]);
-const isRecordsExpanded = ref(false); // 体重记录折叠状态
-
-// 体重记录编辑弹窗相关状态
-const isWeightRecordModalVisible = ref(false);
-const editingRecord = ref(null);
-// 格式化数值，保留最多两位小数，去除末尾的零
-function formatNumber(num) {
-  if (num === null || num === undefined) return '0';
-  const parsed = parseFloat(num);
-  if (isNaN(parsed)) return '0';
-  
-  // 先保留两位小数
-  let formatted = parsed.toFixed(2);
-  
-  // 去除末尾的零
-  if (formatted.includes('.')) {
-    formatted = formatted.replace(/\.?0+$/, '');
-  }
-  
-  return formatted;
-}
-
-// 直接使用当前时间的本地格式，避免时区问题
-const now = new Date();
-const year = now.getFullYear();
-const month = String(now.getMonth() + 1).padStart(2, '0');
-const day = String(now.getDate()).padStart(2, '0');
-const hours = String(now.getHours()).padStart(2, '0');
-const minutes = String(now.getMinutes()).padStart(2, '0');
-const newWeightRecord = ref({
-  date: `${year}-${month}-${day} ${hours}:${minutes}`, // 默认当前时间，格式为YYYY-MM-DD HH:mm
-  weight: '',
-  bodyFat: ''
+// 打卡功能相关变量
+const checkinRecords = ref([]);
+const hasCheckedToday = ref(false);
+const todayCheckinTime = ref('');
+const todayCheckinData = ref(null);
+const isLoading = ref(false);
+const isGettingLocation = ref(false);
+const locationAccuracy = ref(null);
+const isLoadingExercises = ref(false);
+const isLoadingData = ref(true);
+const todayDate = ref('');
+const exerciseList = ref([]);
+const isTodayCheckedIn = ref(false); // 默认未打卡
+const todayAchievement = ref(null);   // 存储今日打卡的总结数据
+const weekStatus = ref([
+  { name: '周一', status: 'pending' }, // pending: 还没到, checked: 已打卡, missed: 漏打
+  { name: '周二', status: 'pending' },
+  { name: '周三', status: 'pending' },
+  { name: '周四', status: 'pending' },
+  { name: '周五', status: 'pending' },
+  { name: '周六', status: 'pending' },
+  { name: '周日', status: 'pending' },
+]);
+const checkinForm = ref({
+  exercises: [],
+  duration: null,
+  location: ''
+});
+const selectedExercise = ref('');
+const checkinFormRef = ref(null);
+const rules = ref({
+  exercises: [
+    { required: true, message: '请选择训练内容', trigger: 'blur' }
+  ],
+  duration: [
+    { required: true, message: '请输入训练时长', trigger: 'blur' },
+    { type: 'number', min: 1, message: '训练时长至少为1分钟', trigger: 'blur' },
+  ],
+  location: [
+    { required: true, message: '请输入或获取打卡位置', trigger: 'blur' },
+  ],
 });
 
+// 计算属性
+const totalCheckins = computed(() => {
+  return checkinRecords.value.length;
+});
 
+const currentStreak = computed(() => {
+  if (checkinRecords.value.length === 0) return 0;
+
+  const sortedRecords = [...checkinRecords.value].sort((a, b) =>
+    new Date(b.time) - new Date(a.time)
+  );
+
+  let streak = 0;
+  const today = new Date().setHours(0, 0, 0, 0);
+
+  if (new Date(sortedRecords[0].time).setHours(0, 0, 0, 0) === today) {
+    streak = 1;
+    for (let i = 1; i < sortedRecords.length; i++) {
+      const currentDate = new Date(sortedRecords[i - 1].time);
+      const previousDate = new Date(sortedRecords[i].time);
+      const daysDiff = Math.floor((currentDate - previousDate) / (1000 * 60 * 60 * 24));
+      if (daysDiff === 1) streak++;
+      else break;
+    }
+  }
+  return streak;
+});
+
+const bestStreak = computed(() => {
+  if (checkinRecords.value.length === 0) return 0;
+
+  const sortedRecords = [...checkinRecords.value].sort((a, b) =>
+    new Date(b.time) - new Date(a.time)
+  );
+
+  let maxStreak = 1;
+  let currentStreak = 1;
+
+  for (let i = 1; i < sortedRecords.length; i++) {
+    const currentDate = new Date(sortedRecords[i - 1].time);
+    const previousDate = new Date(sortedRecords[i].time);
+    const daysDiff = Math.floor((currentDate - previousDate) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff === 1) {
+      currentStreak++;
+      maxStreak = Math.max(maxStreak, currentStreak);
+    } else if (daysDiff > 1) {
+      currentStreak = 1;
+    }
+  }
+  return maxStreak;
+});
 
 // 生命周期钩子
-// 在 import 下面已有 onMounted，修改它：
 onMounted(async () => {
   console.log("健身仪表盘页面已加载");
+  await init();
+});
 
-  // 从API获取体重和体脂率数据
-  try {
-    // 从localStorage获取用户ID
-    let currentUserId = null;
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        // 解析Token
-        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-      } catch (error) {
-        console.error('解析Token失败:', error);
-      }
-    }
-    // 如果没有Token或解析失败，使用默认用户ID 3
-    if (!currentUserId) {
-      currentUserId = 3;
-    }
-    
-    const response = await fetch(`/api/body-metrics?user_id=${currentUserId}`);
-    const data = await response.json();
-    
-    if (data.code === 200 && data.data && data.data.length > 0) {
-      console.log('体重数据:', data.data);
-      
-      // 处理数据
-      const sortedData = [...data.data].sort((a, b) => new Date(b.measurement_date) - new Date(a.measurement_date));
-      
-      // 更新当前体重和体脂率（使用最新的记录）
-      const latestRecord = sortedData[0];
-      currentWeight.value = latestRecord.weight;
-      bodyFat.value = latestRecord.body_fat;
-      
-      // 计算体重变化
-      if (sortedData.length > 1) {
-        const previousRecord = sortedData[1];
-        weightChange.value = latestRecord.weight - previousRecord.weight;
-      } else {
-        weightChange.value = 0;
-      }
-      
-      // 更新体重记录
-      weightRecords.value = sortedData.map(record => ({
-        id: record.id,
-        date: formatDateTime(record.measurement_date),
-        weight: record.weight,
-        bodyFat: record.body_fat
-      }));
-    } else {
-      console.log('暂无体重数据');
-    }
-  } catch (error) {
-    console.error('获取体重数据失败:', error);
-  }
-
-  // ✅ 新增：初始化 ECharts
-  if (typeof window !== "undefined" && window.echarts) {
-    const chartDom = document.getElementById("weight-chart");
-    if (chartDom) {
-      const myChart = window.echarts.init(chartDom);
-
-      // 优化图表配置，使用响应式数据
-      const updateChart = () => {
-        // 确保数据按日期排序
-        const sortedRecords = [...weightRecords.value].sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        const xAxisData = sortedRecords.map(record => record.date); // 显示完整的日期和时间
-        const seriesData = sortedRecords.map(record => parseFloat(record.weight));
-        
-        return {
-          title: {
-            text: "体重变化趋势",
-            left: "center",
-            textStyle: { fontSize: 16 },
-          },
-          tooltip: {
-            trigger: "axis",
-            formatter: function (params) {
-              if (params && params.length > 0 && params[0].dataIndex !== undefined) {
-                const record = sortedRecords[params[0].dataIndex];
-                return `${record.date}<br/>体重: ${formatNumber(record.weight)}kg`;
-              }
-              return "";
-            }
-          },
-          xAxis: {
-            type: "category",
-            data: xAxisData,
-            axisLabel: { rotate: 45 },
-          },
-          yAxis: {
-            type: "value",
-            name: "体重 (kg)",
-            min: function (value) {
-              return Math.floor(value.min * 0.95);
-            },
-          },
-          series: [
-            {
-              type: "line",
-              smooth: true,
-              symbol: "circle",
-              symbolSize: 6,
-              lineStyle: { width: 3 },
-              data: seriesData,
-              itemStyle: {
-                color: '#409eff'
-              },
-              areaStyle: {
-                color: {
-                  type: 'linear',
-                  x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [
-                    { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-                    { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
-                  ]
-                }
-              }
-            },
-          ],
-          grid: {
-            left: "3%",
-            right: "3%",
-            bottom: "10%",
-            containLabel: true,
-          },
-        };
-      };
-
-      // 初始化图表
-      myChart.setOption(updateChart());
-
-      // 窗口缩放时自适应
-      window.addEventListener("resize", () => myChart.resize());
-      
-      // 监听数据变化，更新图表
-      const unwatch = watchEffect(() => {
-        // 直接使用响应式数据变化触发更新
-        myChart.setOption(updateChart());
-      });
-      
-      // 清理函数
-      onBeforeUnmount(() => {
-        unwatch();
-        window.removeEventListener("resize", () => myChart.resize());
-        myChart.dispose();
-      });
-    } else {
-      console.error("❌ #weight-chart not found");
+// 统一的用户ID获取函数
+const getCurrentUserId = () => {
+  let currentUserId = null;
+  const token = localStorage.getItem('token');
+  
+  if (token) {
+    try {
+      // 解析Token
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      // 尝试从不同字段获取用户ID
+      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      console.log('从Token中解析出的用户ID:', currentUserId);
+    } catch (error) {
+      console.error('解析Token失败:', error);
+      // 尝试直接从localStorage获取用户ID
+      currentUserId = localStorage.getItem('user_id');
+      console.log('从localStorage直接获取的用户ID:', currentUserId);
     }
   } else {
-    console.error("❌ ECharts not loaded. Check CDN in nuxt.config.js");
+    // 尝试直接从localStorage获取用户ID
+    currentUserId = localStorage.getItem('user_id');
+    console.log('从localStorage直接获取的用户ID:', currentUserId);
   }
-});
+  
+  // 如果没有获取到用户ID，使用默认值1（与打卡时保持一致）
+  if (!currentUserId) {
+    currentUserId = 1;
+    console.log('使用默认用户ID:', currentUserId);
+  }
+  
+  return currentUserId;
+};
+
+// 获取本周一的零点
+const getStartOfWeek = () => {
+  const now = new Date();
+  const day = now.getDay() || 7; // 1-7, 周日为 7
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(now.getDate() - (day - 1)); // 减去（今天周几-1）天，回到周一
+  return start;
+};
+
+// 加载本周状态
+const loadWeeklyStatus = (records) => {
+  const startOfWeek = getStartOfWeek(); // 获取本周一 00:00:00
+  const now = new Date();
+  let today = now.getDay() || 7; // 1-7, 周日为 7
+
+  weekStatus.value = weekStatus.value.map((day, index) => {
+    const dayNum = index + 1; // 1代表周一
+    
+    // 关键修复：增加时间范围判断
+    const hasRecordThisWeek = records.some(r => {
+      const recordDate = new Date(r.time);
+      // 条件：记录的“周几”匹配，且时间必须在“本周一”之后
+      return (recordDate.getDay() || 7) === dayNum && recordDate >= startOfWeek;
+    });
+
+    if (hasRecordThisWeek) {
+      return { ...day, status: 'checked' };
+    } else if (dayNum < today) {
+      return { ...day, status: 'missed' };
+    } else {
+      return { ...day, status: 'pending' };
+    }
+  });
+};
+
+// 初始化函数
+const init = async () => {
+  try {
+    isLoadingData.value = true;
+    setTodayDate();
+    await loadCheckinRecords();
+    checkTodayStatus();
+    await loadExerciseList();
+    
+    // 更新打卡状态
+    isTodayCheckedIn.value = hasCheckedToday.value;
+    if (hasCheckedToday.value && todayCheckinData.value) {
+      // 计算今日成就数据
+      todayAchievement.value = {
+        calories: Math.round((todayCheckinData.value.duration || 0) * 10), // 假设每分钟消耗10卡路里
+        duration: todayCheckinData.value.duration || 0,
+        exercises: todayCheckinData.value.exercises || []
+      };
+    }
+    
+    // 更新本周打卡状态
+    loadWeeklyStatus(checkinRecords.value);
+  } catch (error) {
+    console.error('初始化失败:', error);
+  } finally {
+    isLoadingData.value = false;
+  }
+};
+
+// 加载训练内容列表
+const loadExerciseList = async () => {
+  isLoadingExercises.value = true;
+  try {
+    const response = await fetch('/api/exercise_logs');
+    if (!response.ok) throw new Error('网络请求失败');
+    const data = await response.json();
+    if (data.code === 200) {
+      exerciseList.value = data.data || [];
+    } else {
+      console.error('获取训练内容失败:', data.message);
+      exerciseList.value = [];
+    }
+  } catch (error) {
+    console.error('加载训练内容失败:', error);
+    exerciseList.value = [];
+  } finally {
+    isLoadingExercises.value = false;
+  }
+};
+
+// 设置今日日期
+const setTodayDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  todayDate.value = `${year}-${month}-${day}`;
+};
+
+// 加载打卡记录
+const loadCheckinRecords = async () => {
+  try {
+    const currentUserId = getCurrentUserId();
+    const token = localStorage.getItem('token');
+    
+    // 构建请求头
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // 如果有token，添加到请求头
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    console.log('加载健身打卡记录，用户ID:', currentUserId);
+    
+    // 使用新的checkin-records端点获取健身打卡记录
+    const recordsResponse = await fetch('/api/checkin-records', {
+      method: 'GET',
+      headers: headers
+    });
+    
+    if (!recordsResponse.ok) throw new Error('网络请求失败');
+    const recordsData = await recordsResponse.json();
+    console.log('获取健身打卡记录响应:', recordsData);
+    
+    if (recordsData.code === 200) {
+      checkinRecords.value = recordsData.data || [];
+      checkinRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
+    } else {
+      console.error('获取健身打卡记录失败:', recordsData.message);
+      checkinRecords.value = [];
+    }
+  } catch (error) {
+    console.error('加载健身打卡记录失败:', error);
+    checkinRecords.value = [];
+  }
+};
+
+// 检查今日打卡状态
+const checkTodayStatus = () => {
+  const today = new Date().setHours(0, 0, 0, 0);
+  for (const record of checkinRecords.value) {
+    const recordDate = new Date(record.time).setHours(0, 0, 0, 0);
+    if (recordDate === today) {
+      hasCheckedToday.value = true;
+      todayCheckinTime.value = formatTime(record.time);
+      todayCheckinData.value = {
+        exercises: record.exercises || record.exercise, // 兼容旧数据
+        duration: record.duration,
+        location: record.location,
+      };
+      break;
+    }
+  }
+};
+
+// 处理打卡
+const handleCheckin = () => {
+  checkinFormRef.value.validate(async (valid) => {
+    if (valid) {
+      isLoading.value = true;
+      try {
+        const currentUserId = getCurrentUserId();
+        const token = localStorage.getItem('token');
+        
+        // 准备打卡数据
+        const checkinData = {
+          user_id: currentUserId,
+          exercises: checkinForm.value.exercises,
+          duration: checkinForm.value.duration,
+          location: checkinForm.value.location,
+        };
+        
+        // 构建请求头
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        // 如果有token，添加到请求头
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        console.log('发送健身打卡请求，数据:', checkinData);
+        
+        // 调用专门的健身打卡API保存打卡记录
+        const response = await fetch('/api/checkin', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(checkinData),
+        });
+        
+        if (!response.ok) throw new Error('网络请求失败');
+        const data = await response.json();
+        console.log('健身打卡响应:', data);
+        
+        if (data.code === 200) {
+          // 保存成功后，重新加载打卡记录
+          await loadCheckinRecords();
+          // 检查今日打卡状态
+          checkTodayStatus();
+          
+          // 更新打卡状态和成就数据
+          isTodayCheckedIn.value = hasCheckedToday.value;
+          if (hasCheckedToday.value && todayCheckinData.value) {
+            // 计算今日成就数据
+            todayAchievement.value = {
+              calories: Math.round((todayCheckinData.value.duration || 0) * 10), // 假设每分钟消耗10卡路里
+              duration: todayCheckinData.value.duration || 0,
+              exercises: todayCheckinData.value.exercises || []
+            };
+          }
+          
+          // 更新本周打卡状态
+          loadWeeklyStatus(checkinRecords.value);
+          
+          // 重置表单
+          checkinForm.value = {
+            exercises: [],
+            duration: null,
+            location: '',
+          };
+          ElMessage.success('健身打卡成功！');
+        } else {
+          console.error('健身打卡失败:', data.message);
+          ElMessage.error('健身打卡失败: ' + data.message);
+        }
+      } catch (error) {
+        console.error('健身打卡失败:', error);
+        ElMessage.error('健身打卡失败，请重试');
+      } finally {
+        isLoading.value = false;
+      }
+    } else {
+      return false;
+    }
+  });
+};
+
+// 添加训练内容
+const addExercise = () => {
+  if (!selectedExercise.value) {
+    ElMessage.warning('请选择训练内容');
+    return;
+  }
+  
+  // 检查是否已经添加过相同的训练内容
+  const exists = checkinForm.value.exercises.some(item => item.name === selectedExercise.value);
+  if (exists) {
+    ElMessage.warning('该训练内容已添加');
+    return;
+  }
+  
+  // 添加训练内容到列表
+  checkinForm.value.exercises.push({
+    name: selectedExercise.value,
+    sets: 3,
+    reps: 10
+  });
+  
+  // 清空选择
+  selectedExercise.value = '';
+};
+
+// 移除训练内容
+const removeExercise = (index) => {
+  checkinForm.value.exercises.splice(index, 1);
+};
+
+// 格式化日期时间
+const formatDateTime = (time) => {
+  const date = new Date(time);
+  return `${formatDate(time)} ${formatTime(time)}`;
+};
+
+// 格式化日期
+const formatDate = (time) => {
+  const date = new Date(time);
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// 格式化时间
+const formatTime = (time) => {
+  const date = new Date(time);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+// 获取当前位置
+const getCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    ElMessage.error('您的浏览器不支持地理定位功能');
+    return;
+  }
+  isGettingLocation.value = true;
+  
+  // 连续获取多次位置，取精度最高的结果
+  const locationAttempts = [];
+  const maxAttempts = 3;
+  let attempts = 0;
+  
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        attempts++;
+        // 存储位置信息和精度
+        locationAttempts.push({
+          position: position,
+          accuracy: position.coords.accuracy
+        });
+        
+        // 如果还没达到最大尝试次数，继续获取
+        if (attempts < maxAttempts) {
+          // 短暂延迟后再次获取
+          setTimeout(getLocation, 500);
+        } else {
+          // 所有尝试完成，选择精度最高的位置
+          if (locationAttempts.length > 0) {
+            // 按精度排序（精度值越小越精确）
+            locationAttempts.sort((a, b) => a.accuracy - b.accuracy);
+            // 使用精度最高的位置
+            const bestLocation = locationAttempts[0].position;
+            processLocationData(bestLocation).catch((error) => {
+              console.error('处理位置数据时出错:', error);
+              isGettingLocation.value = false;
+              ElMessage.error('处理位置信息失败');
+            });
+          } else {
+            isGettingLocation.value = false;
+            ElMessage.error('获取位置失败');
+          }
+        }
+      },
+      (error) => {
+        attempts++;
+        console.error('获取位置失败:', error);
+        
+        // 如果还有尝试机会，继续尝试
+        if (attempts < maxAttempts) {
+          setTimeout(getLocation, 500);
+        } else {
+          isGettingLocation.value = false;
+          let errorMessage = '获取位置失败';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = '您拒绝了位置请求';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = '位置信息不可用';
+              break;
+            case error.TIMEOUT:
+              errorMessage = '获取位置超时';
+              break;
+          }
+          ElMessage.error(errorMessage);
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+  
+  // 开始获取位置
+  getLocation();
+};
+
+// 处理位置数据
+const processLocationData = async (position) => {
+  const { latitude, longitude, accuracy } = position.coords;
+  // 更新定位精度
+  locationAccuracy.value = Math.round(accuracy);
+  
+  const locationAddress = await getLocationAddressByAmap(latitude, longitude);
+  checkinForm.value.location = locationAddress || `经度: ${latitude.toFixed(6)}, 纬度: ${longitude.toFixed(6)}`;
+  isGettingLocation.value = false;
+  ElMessage.success('位置获取成功');
+};
+
+// 通过高德地图获取位置地址
+const getLocationAddressByAmap = async (latitude, longitude) => {
+  try {
+    const url = `http://localhost:8081/api/place?lon=${longitude}&lat=${latitude}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      console.error(`后端服务返回错误: ${response.status}`);
+      return getMockLocationAddress(latitude, longitude);
+    }
+    const data = await response.json();
+    if (data && data.placeName) {
+      console.log('成功从后端获取地址:', data.placeName);
+      return data.placeName;
+    } else {
+      console.error('后端服务返回的数据格式不正确:', data);
+      return getMockLocationAddress(latitude, longitude);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('请求后端服务超时');
+    } else {
+      console.error('调用后端服务失败:', error);
+    }
+    return getMockLocationAddress(latitude, longitude);
+  }
+};
+
+// 获取模拟位置地址
+const getMockLocationAddress = (latitude, longitude) => {
+  console.log('使用模拟地址');
+  return '请求地址失败';
+};
 
 // 开始训练计划
 const startTrainingPlan = (planId) => {
@@ -618,684 +1012,12 @@ const handleProfile = () => {
   console.log("查看个人资料");
 };
 
-// 编辑体重数据
-const editWeightData = () => {
-  // 在打开弹窗前，将当前数据复制到编辑表单中
-  editCurrentWeight.value = currentWeight.value;
-  editTargetWeight.value = targetWeight.value;
-  editBodyFat.value = bodyFat.value;
-  // 显示编辑弹窗
-  isEditModalVisible.value = true;
-  console.log("打开体重数据编辑弹窗");
-};
 
-// 关闭编辑弹窗
-const closeEditModal = function () {
-  isEditModalVisible.value = false;
-};
-
-// 保存体重数据修改
-const saveWeightData = async function () {
-  // 数据验证
-  var isValid = true;
-  var errorMessage = "";
-
-  // 验证当前体重
-  if (
-    !editCurrentWeight.value ||
-    editCurrentWeight.value < 30 ||
-    editCurrentWeight.value > 200
-  ) {
-    isValid = false;
-    errorMessage = "请输入有效的当前体重（30-200kg）";
-  }
-  // 验证目标体重
-  else if (
-    !editTargetWeight.value ||
-    editTargetWeight.value < 30 ||
-    editTargetWeight.value > 200
-  ) {
-    isValid = false;
-    errorMessage = "请输入有效的目标体重（30-200kg）";
-  }
-  // 验证体脂率
-  else if (
-    !editBodyFat.value ||
-    editBodyFat.value < 5 ||
-    editBodyFat.value > 40
-  ) {
-    isValid = false;
-    errorMessage = "请输入有效的体脂率（5-40%）";
-  }
-
-  if (!isValid) {
-    alert(errorMessage);
-    return;
-  }
-
-  // 计算体重变化
-  var newWeightChange = editCurrentWeight.value - currentWeight.value;
-
-  // 更新数据
-  currentWeight.value = editCurrentWeight.value;
-  targetWeight.value = editTargetWeight.value;
-  bodyFat.value = editBodyFat.value;
-  weightChange.value = newWeightChange;
-
-  // 关闭弹窗
-  isEditModalVisible.value = false;
-  
-  // 从localStorage获取用户ID
-  let currentUserId = null;
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      // 解析Token
-      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-    } catch (error) {
-      console.error('解析Token失败:', error);
-    }
-  }
-  // 如果没有Token或解析失败，使用默认用户ID 3
-  if (!currentUserId) {
-    currentUserId = 3;
-  }
-  
-  try {
-    // 发送POST请求到API
-    // 使用ISO格式的时间戳，但确保是本地时间
-    const now = new Date();
-    // 创建一个新的Date对象，确保它被当作本地时间处理
-    const localDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
-    
-    const response = await fetch('/api/body-metrics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: currentUserId,
-        weight_kg: editCurrentWeight.value,
-        body_fat: editBodyFat.value,
-        measurement_date: localDate.toISOString()
-      }),
-    });
-    
-    const data = await response.json();
-    
-    if (data.code === 200) {
-      // 重新获取数据以更新图表和UI
-      await fetchBodyMetrics();
-      
-      // 显示成功消息
-      alert('体重数据保存成功！');
-    } else {
-      // 显示错误消息
-      alert('保存失败: ' + (data.message || '未知错误'));
-    }
-  } catch (error) {
-    console.error('保存体重数据失败:', error);
-    alert('保存失败: 网络错误，请稍后再试');
-  }
-};
-
-// 关闭体重记录编辑弹窗
-const closeWeightRecordModal = function () {
-  isWeightRecordModalVisible.value = false;
-};
-// 统一的时间格式化函数
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    // 确保输入格式正确
-    let date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      // 尝试将空格分隔的日期时间转换为ISO格式
-      date = new Date(dateStr.replace(' ', 'T'));
-    }
-    
-    // 使用本地时间方法，确保显示正确的本地时间
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0'); // 24小时制，使用本地时间
-    const minutes = String(date.getMinutes()).padStart(2, '0'); // 使用本地时间
-    
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  } catch (error) {
-    console.error('日期时间格式化错误:', error);
-    return dateStr;
-  }
-};
-
-// 将日期时间格式转换为datetime-local输入框格式
-const convertToLocalDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    // 处理现有的YYYY-MM-DD HH:mm格式
-    if (dateStr.includes(' ')) {
-      return dateStr.replace(' ', 'T');
-    }
-    // 处理可能的ISO格式
-    return dateStr;
-  } catch (error) {
-    console.error('日期时间转换错误:', error);
-    return dateStr;
-  }
-};
-
-const openAddWeightRecordModal = () => {
-  editingRecord.value = null;
-  // 直接使用当前时间的ISO格式，避免时区问题
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  newWeightRecord.value = {
-    date: `${year}-${month}-${day} ${hours}:${minutes}`,
-    weight: ''
-  };
-  isWeightRecordModalVisible.value = true;
-};
-
-// 打开编辑体重记录弹窗
-const openEditWeightRecordModal = (index) => {
-  editingRecord.value = index;
-  const record = weightRecords.value[index];
-  // 转换日期格式为datetime-local输入框所需格式
-  newWeightRecord.value = {
-    date: convertToLocalDateTime(record.date),
-    weight: record.weight,
-    bodyFat: record.bodyFat || ''
-  };
-  isWeightRecordModalVisible.value = true;
-};
-
-// 获取体重和体脂率数据
-const fetchBodyMetrics = async () => {
-  try {
-    // 从localStorage获取用户ID
-    let currentUserId = null;
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        // 解析Token
-        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-      } catch (error) {
-        console.error('解析Token失败:', error);
-      }
-    }
-    // 如果没有Token或解析失败，使用默认用户ID 3
-    if (!currentUserId) {
-      currentUserId = 3;
-    }
-    
-    const response = await fetch(`/api/body-metrics?user_id=${currentUserId}`);
-    const data = await response.json();
-    
-    if (data.code === 200 && data.data && data.data.length > 0) {
-      console.log('体重数据:', data.data);
-      
-      // 处理数据
-      const sortedData = [...data.data].sort((a, b) => new Date(b.measurement_date) - new Date(a.measurement_date));
-      
-      // 更新当前体重和体脂率（使用最新的记录）
-      const latestRecord = sortedData[0];
-      currentWeight.value = latestRecord.weight;
-      bodyFat.value = latestRecord.body_fat;
-      
-      // 计算体重变化
-      if (sortedData.length > 1) {
-        const previousRecord = sortedData[1];
-        weightChange.value = latestRecord.weight - previousRecord.weight;
-      } else {
-        weightChange.value = 0;
-      }
-      
-      // 更新体重记录
-      weightRecords.value = sortedData.map(record => ({
-        id: record.id,
-        date: formatDateTime(record.measurement_date),
-        weight: record.weight,
-        bodyFat: record.body_fat
-      }));
-    } else {
-      console.log('暂无体重数据');
-    }
-  } catch (error) {
-    console.error('获取体重数据失败:', error);
-  }
-};
-
-// 保存体重记录
-const saveWeightRecord = async () => {
-  if (!newWeightRecord.value.date || !newWeightRecord.value.weight) {
-    alert('请填写完整的体重记录信息');
-    return;
-  }
-  
-  const weight = parseFloat(newWeightRecord.value.weight);
-  if (isNaN(weight) || weight < 30 || weight > 200) {
-    alert('请输入有效的体重值（30-200kg）');
-    return;
-  }
-  
-  // 使用统一的格式化函数确保日期时间格式一致
-  const formattedDateTime = formatDateTime(newWeightRecord.value.date);
-  
-  // 从localStorage获取用户ID
-  let currentUserId = null;
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      // 解析Token
-      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-    } catch (error) {
-      console.error('解析Token失败:', error);
-    }
-  }
-  // 如果没有Token或解析失败，使用默认用户ID 3
-  if (!currentUserId) {
-    currentUserId = 3;
-  }
-  
-  try {
-    // 发送POST请求到API
-    // 使用ISO格式的时间戳，但确保是本地时间
-    const date = new Date(newWeightRecord.value.date);
-    // 创建一个新的Date对象，确保它被当作本地时间处理
-    const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes());
-    const response = await fetch('/api/body-metrics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: currentUserId,
-        weight_kg: weight,
-        body_fat: newWeightRecord.value.bodyFat || bodyFat.value, // 使用弹窗中输入的体脂率，如果没有则使用当前体脂率
-        measurement_date: localDate.toISOString()
-      }),
-    });
-    
-    const data = await response.json();
-    
-    if (data.code === 200) {
-      // API调用成功，更新本地数据
-      if (editingRecord.value !== null) {
-        // 编辑现有记录
-        weightRecords.value[editingRecord.value] = {
-          date: formattedDateTime,
-          weight: weight,
-          bodyFat: newWeightRecord.value.bodyFat || bodyFat.value
-        };
-      } else {
-        // 添加新记录
-        weightRecords.value.push({
-          date: formattedDateTime,
-          weight: weight,
-          bodyFat: newWeightRecord.value.bodyFat || bodyFat.value
-        });
-      }
-      
-      // 关闭弹窗
-      closeWeightRecordModal();
-      
-      // 重新获取数据以更新图表和UI
-      await fetchBodyMetrics();
-      
-      // 显示成功消息
-      alert('体重记录保存成功！');
-    } else {
-      // 显示错误消息
-      alert('保存失败: ' + (data.message || '未知错误'));
-    }
-  } catch (error) {
-    console.error('保存体重记录失败:', error);
-    alert('保存失败: 网络错误，请稍后再试');
-  }
-};
-
-// 删除体重记录
-const deleteWeightRecord = async (index) => {
-  if (confirm('确定要删除这条体重记录吗？')) {
-    try {
-      const record = weightRecords.value[index];
-      
-      // 发送DELETE请求到API
-      if (record.id) {
-        const response = await fetch('/api/body-metrics', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: record.id
-          }),
-        });
-        
-        const data = await response.json();
-        
-        if (data.code !== 200) {
-          alert('删除失败: ' + (data.message || '未知错误'));
-          return;
-        }
-      }
-      
-      // 删除本地记录
-      weightRecords.value.splice(index, 1);
-      
-      // 更新当前体重为最新记录
-      if (weightRecords.value.length > 0) {
-        const latestRecord = weightRecords.value[weightRecords.value.length - 1];
-        currentWeight.value = latestRecord.weight;
-        // 计算体重变化
-        if (weightRecords.value.length > 1) {
-          const previousRecord = weightRecords.value[weightRecords.value.length - 2];
-          weightChange.value = parseFloat((latestRecord.weight - previousRecord.weight).toFixed(1));
-        } else {
-          weightChange.value = 0;
-        }
-      }
-      
-      // 显示成功消息
-      alert('体重记录删除成功！');
-    } catch (error) {
-      console.error('删除体重记录失败:', error);
-      alert('删除失败: 网络错误，请稍后再试');
-    }
-  }
-};
 
 </script>
 
 <style scoped lang="scss">
-/* 体重记录管理相关样式 */
-.chart-container {
-  width: 100%;
-  height: 400px;
-  min-height: 400px;
-  margin-bottom: 20px;
-}
 
-.weight-records-container {
-  margin-top: 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 8px;
-  transition: background-color 0.3s;
-}
-
-.section-header:hover {
-  background-color: #f5f7fa;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.expand-btn {
-  background: transparent;
-  border: none;
-  color: #606266;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.expand-btn:hover {
-  background-color: #ecf5ff;
-  color: #409eff;
-}
-
-.add-btn {
-  padding: 8px 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.add-btn:hover {
-  background-color: #45a049;
-}
-
-.weight-records-list {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.no-records {
-  background-color: #f5f7fa;
-  border-radius: 8px;
-  padding: 30px;
-  text-align: center;
-  color: #909399;
-  font-size: 14px;
-}
-
-.record-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.record-item:last-child {
-  border-bottom: none;
-}
-
-.record-info {
-  flex: 1;
-}
-
-.record-date {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.record-weight {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.record-body-fat {
-  font-size: 14px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.record-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.edit-btn, .delete-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.edit-btn {
-  background-color: #2196F3;
-  color: white;
-}
-
-.edit-btn:hover {
-  background-color: #1976D2;
-}
-
-.delete-btn {
-  background-color: #f44336;
-  color: white;
-}
-
-.delete-btn:hover {
-  background-color: #d32f2f;
-}
-
-/* 弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #2196F3;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 20px;
-  border-top: 1px solid #eee;
-}
-
-.cancel-btn, .save-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.cancel-btn {
-  background-color: #f5f5f5;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.save-btn {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.save-btn:hover {
-  background-color: #45a049;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .modal-content {
-    width: 95%;
-    margin: 20px;
-  }
-  
-  .record-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .record-actions {
-    align-self: flex-end;
-  }
-}
 
 /* 全局样式重置 */
 * {
@@ -1489,176 +1211,6 @@ const deleteWeightRecord = async (index) => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-/* 体重数据卡片样式 */
-.weight-card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.weight-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.weight-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0;
-}
-
-.edit-btn {
-  background: transparent;
-  border: none;
-  color: #909399;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.edit-btn:hover {
-  color: #409eff;
-  background-color: #ecf5ff;
-}
-
-.weight-data {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.weight-item {
-  text-align: center;
-  flex: 1;
-}
-
-.weight-label {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 8px;
-}
-
-.weight-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.weight-unit {
-  font-size: 16px;
-  font-weight: 400;
-  color: #606266;
-}
-
-.weight-trend {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.weight-trend.down {
-  color: #67c23a;
-}
-
-.weight-trend.up {
-  color: #f56c6c;
-}
-
-.weight-progress {
-  font-size: 12px;
-  font-weight: 500;
-  color: #e6a23c;
-}
-
-.weight-chart {
-  flex: 2;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 20px;
-}
-
-.chart-lines {
-  display: flex;
-  align-items: flex-end;
-  gap: 20px;
-  width: 100%;
-}
-
-.chart-line {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.line {
-  width: 4px;
-  background-color: #409eff;
-  border-radius: 2px;
-  transition: height 0.3s ease;
-}
-
-.current-line .line {
-  background-color: #409eff;
-}
-
-.target-line .line {
-  background-color: #e6a23c;
-}
-
-.line-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #409eff;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.current-line .line-dot {
-  background-color: #409eff;
-}
-
-.target-line .line-dot {
-  background-color: #e6a23c;
-}
-
-.body-fat {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: 16px;
-  border-top: 1px solid #ebeef5;
-}
-
-.fat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.fat-label {
-  font-size: 14px;
-  color: #606266;
-}
-
-.fat-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: #409eff;
 }
 
 /* 训练计划区域样式 */
@@ -1972,6 +1524,541 @@ const deleteWeightRecord = async (index) => {
   .main-content {
     padding-bottom: 72px; /* 为底部导航留出空间 */
   }
+
+  /* 响应式骨架屏样式 */
+  .skeleton-container {
+    height: 150px;
+    padding: 15px;
+  }
+}
+
+/* 打卡功能样式 */
+.today-checkin-card {
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.date-info {
+  color: #606266;
+  font-size: 14px;
+}
+
+.checkin-content {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.check-icon {
+  font-size: 80px;
+  color: #67c23a;
+  margin-bottom: 20px;
+}
+
+.uncheck-icon {
+  font-size: 80px;
+  color: #f56c6c;
+  margin-bottom: 20px;
+}
+
+.checked-status p,
+.uncheck-status p {
+  font-size: 20px;
+  color: #303133;
+}
+
+.checkin-time {
+  color: #606266 !important;
+  font-size: 16px !important;
+  margin-top: 10px;
+}
+
+.today-exercise-info {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  text-align: left;
+  display: inline-block;
+  width: 90%;
+  max-width: 600px;
+}
+
+.exercise-title {
+  font-size: 18px !important;
+  font-weight: bold !important;
+  color: #303133 !important;
+  margin-bottom: 15px !important;
+  text-align: center !important;
+}
+
+.exercise-content {
+  font-size: 16px !important;
+  color: #303133 !important;
+  margin-bottom: 10px !important;
+  line-height: 1.6;
+}
+
+.exercise-duration {
+  font-size: 16px !important;
+  color: #606266 !important;
+  margin-top: 10px !important;
+}
+
+.exercise-location {
+  font-size: 16px !important;
+  color: #606266 !important;
+  margin-top: 10px !important;
+}
+
+.checkin-form {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto 0;
+  text-align: left;
+}
+
+.checkin-form .el-form-item {
+  margin-bottom: 25px;
+}
+
+/* 骨架屏样式 */
+.skeleton-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 成就看板样式 */
+.achievement-status {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.achievement-grid {
+  display: flex;
+  justify-content: space-around;
+  margin: 30px 0;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.achieve-item .label {
+  display: block;
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.achieve-item .value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #409eff;
+}
+
+.weekly-calendar {
+  margin-top: 30px;
+}
+
+.weekly-calendar h4 {
+  margin-bottom: 15px;
+  color: #303133;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.calendar-dots {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.dot {
+  width: 20px;
+  height: 20px;
+  background: #ebedf0;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.dot.active {
+  background: #67c23a; /* 类似 Github 的绿色 */
+  transform: scale(1.1);
+}
+
+/* 本周运动进度样式 */
+.weekly-checkin {
+  margin-top: 30px;
+}
+
+.weekly-checkin h4 {
+  margin-bottom: 15px;
+  color: #303133;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.days-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+
+.day-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-label {
+  font-size: 12px;
+  color: #606266;
+}
+
+.status-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f2f5; /* 预设灰色 */
+  border: 1px solid #dcdfe6;
+  transition: all 0.3s ease;
+}
+
+/* 绿框绿勾 */
+.status-box.checked {
+  background-color: #f0f9eb; /* 浅绿背景 */
+  border-color: #67c23a;     /* 绿色边框 */
+  color: #67c23a;            /* 勾勾的颜色 */
+}
+
+/* 红框红叉 */
+.status-box.missed {
+  background-color: #fef0f0; /* 浅红背景 */
+  border-color: #f56c6c;     /* 红色边框 */
+  color: #f56c6c;            /* 叉叉的颜色 */
+}
+
+/* 调整图标大小 */
+.status-box .el-icon {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.location-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.location-input {
+  flex: 1;
+}
+
+.get-location-btn {
+  white-space: nowrap;
+}
+
+.stats-section {
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.stat-number {
+  font-size: 36px;
+  font-weight: bold;
+  color: #409EFF;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  color: #606266;
+  font-size: 16px;
+}
+
+.records-card {
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.record-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.record-info {
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 10px;
+}
+
+.record-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 5px;
+}
+
+.record-date,
+.record-time {
+  color: #606266;
+  font-size: 14px;
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.record-details {
+  padding-top: 10px;
+}
+
+.exercise-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exercise-info .label {
+  font-weight: bold;
+  color: #606266;
+}
+
+.exercise-info .value {
+  color: #303133;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.no-records {
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* 新增样式：针对训练时长组件的定制 */
+.duration-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.duration-input {
+  flex: 1;
+  width: 100%;
+}
+
+.duration-unit {
+  /* 样式与 label "训练时长" 保持一致 */
+  color: #606266; /* 深灰色，与标签颜色一致 */
+  font-size: 14px; /* 字体大小与标签一致 */
+  font-weight: normal; /* 正常字体，不加粗 */
+  white-space: nowrap;
+}
+
+/* 训练内容选择容器 */
+.exercise-select-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.exercise-select-container .el-select {
+  flex: 1;
+  width: 100%;
+}
+
+/* 训练详情 */
+.exercise-details {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+}
+
+.exercise-details h3 {
+  margin-bottom: 15px;
+  color: #303133;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* 训练项 */
+.exercise-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #ebeef5;
+}
+
+.exercise-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.exercise-name {
+  font-weight: bold;
+  color: #303133;
+}
+
+/* 组数次数容器 */
+.sets-reps-container {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.sets-reps-container .el-form-item {
+  margin-bottom: 0;
+}
+
+/* 今日训练内容样式 */
+.today-exercise-item {
+  margin-bottom: 5px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.today-exercise-item:last-child {
+  border-bottom: none;
+}
+
+/* 打卡记录训练内容列表 */
+.exercise-list {
+  margin-left: 80px;
+  margin-top: 5px;
+}
+
+.record-exercise-item {
+  margin-bottom: 3px;
+  padding: 3px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 组数次数样式 */
+.exercise-sets-reps {
+  color: #606266;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+/* 定位精度和提示样式 */
+.location-accuracy {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #606266;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.location-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .today-exercise-info {
+    width: 100%;
+    padding: 15px;
+  }
+  .checkin-form {
+    width: 95%;
+  }
+  .record-content {
+    align-items: flex-start;
+  }
+  .record-details {
+    text-align: left;
+  }
+  .location-input-container {
+    flex-direction: column;
+  }
+  .location-input {
+    width: 100%;
+  }
+  
+  .stats-section {
+    flex-direction: column;
+  }
+  
+  .stats-section .el-col {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  
+  .exercise-select-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .exercise-select-container .el-button {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+  
+  .sets-reps-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .exercise-list {
+    margin-left: 0;
+  }
+  
+  .get-location-btn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1985,6 +2072,20 @@ const deleteWeightRecord = async (index) => {
 
   .nav-actions {
     gap: 8px;
+  }
+
+  .stat-number {
+    font-size: 24px;
+  }
+
+  .today-exercise-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .exercise-sets-reps {
+    margin-left: 0;
   }
 }
 </style>

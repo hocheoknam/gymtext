@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   try {
     // 查询用户信息
     const userRows =
-      await sql`SELECT id, username, email, password FROM gym_app_user WHERE email = ${email}`;
+      await sql`SELECT id, username, email, password, role FROM gym_app_user WHERE email = ${email}`;
 
     if (!userRows || userRows.length === 0) {
       console.log("[Login] 用户不存在，email:", email);
@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
         id: user.id,
         username: user.username,
         email: user.email,
+        role: user.role, // 必须返回这个，前端才能知道他是 admin
       },
       token: token,
     };

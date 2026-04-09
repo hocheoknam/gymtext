@@ -21,6 +21,13 @@ export default defineNuxtConfig({
     smtpPass: process.env.SMTP_PASS,
   },
   modules: ["@element-plus/nuxt", "@unocss/nuxt"],
+  // 确保全局加载 Element Plus 样式
+  css: [
+    'element-plus/dist/index.css'
+  ],
+  build: {
+    transpile: ['element-plus']
+  },
   // 开启组件自动导入
   components: [
     {

@@ -2,10 +2,10 @@
   <div class="eat-page">
     <!-- 返回首页链接 -->
     <div class="back-to-home">
-      <router-link to="/home" style="color: #409EFF; text-decoration: none;">
+      <NuxtLink to="/home" style="color: #409EFF; text-decoration: none;">
         <el-icon><ArrowLeft /></el-icon>
         <span style="margin-left: 5px;">返回首页</span>
-      </router-link>
+      </NuxtLink>
     </div>
     <header class="top-nav">
       <div class="nav-container">
@@ -15,64 +15,71 @@
         </div>
         <nav class="nav-menu">
           <ul class="nav-list">
-            <li class="nav-item"><a href="/home" class="nav-link">首页</a></li>
-            <li class="nav-item"><a href="/action" class="nav-link">训练库</a></li>
-            <li class="nav-item active"><a href="/eat" class="nav-link">饮食指南</a></li>
-            <li class="nav-item"><a href="/data" class="nav-link">数据中心</a></li>
+            <li class="nav-item"><NuxtLink to="/home" class="nav-link">首页</NuxtLink></li>
+            <li class="nav-item"><NuxtLink to="/action" class="nav-link">训练库</NuxtLink></li>
+            <li class="nav-item active"><NuxtLink to="/eat" class="nav-link">饮食指南</NuxtLink></li>
+            <li class="nav-item"><NuxtLink to="/data" class="nav-link">数据中心</NuxtLink></li>
           </ul>
         </nav>
       </div>
     </header>
 
     <main class="main-content">
-      <div class="content-container">
-        <h1>饮食指南</h1>
-        <p>常见食物营养成分表（每100g）</p>
+      <div class="content-container" v-loading="isLoading">
+        <client-only>
+          <h1>饮食指南</h1>
+          <p>常见食物营养成分表（每100g）</p>
 
-        <!-- 分类筛选：现在由数据动态生成 -->
-        <div class="category-filter" style="margin:20px 0;">
-          <el-tabs v-model="activeCategory" @tab-change="handleCategoryChange">
-            <!-- 全部选项 -->
-            <el-tab-pane label="全部" name="all">全部</el-tab-pane>
-            
-            <!-- 动态生成的分类选项 -->
-            <el-tab-pane 
-              v-for="cat in categories" 
-              :key="cat.value" 
-              :label="cat.label" 
-              :name="cat.value" 
+          <!-- 分类筛选：现在由数据动态生成 -->
+          <div class="category-filter" style="margin:20px 0;">
+            <el-tabs v-model="activeCategory" @tab-change="handleCategoryChange">
+              <!-- 全部选项 -->
+              <el-tab-pane label="全部" name="all">全部</el-tab-pane>
+              
+              <!-- 动态生成的分类选项 -->
+              <el-tab-pane 
+                v-for="cat in categories" 
+                :key="cat.value" 
+                :label="cat.label" 
+                :name="cat.value" 
+              >
+                {{ cat.label }}
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+
+          <div class="food-list" style="margin-top:20px;">
+            <!-- 食物卡片列表 -->
+            <div
+              v-for="item in filteredFoodItems"
+              :key="item.id"
+              class="food-card"
             >
-              {{ cat.label }}
-            </el-tab-pane>
-          </el-tabs>
-        </div>
+              <h3>{{ item.name }}</h3>
+              <div class="nutrients">
+                <span>🔥 热量：{{ item.calories_per_100g }} kcal</span>
+                <span>💪 蛋白质：{{ item.protein_per_100g }} g</span>
+                <span>🥩 脂肪：{{ item.fat_per_100g }} g</span>
+                <span>🍞 碳水：{{ item.carbs_per_100g }} g</span>
+              </div>
+            </div>
 
-        <div class="food-list" style="margin-top:20px;">
-          <!-- 食物卡片列表 -->
-          <div
-            v-for="item in filteredFoodItems"
-            :key="item.id"
-            class="food-card"
-          >
-            <h3>{{ item.name }}</h3>
-            <div class="nutrients">
-              <span>🔥 热量：{{ item.calories_per_100g }} kcal</span>
-              <span>💪 蛋白质：{{ item.protein_per_100g }} g</span>
-              <span>🥩 脂肪：{{ item.fat_per_100g }} g</span>
-              <span>🍞 碳水：{{ item.carbs_per_100g }} g</span>
+            <!-- 空状态提示 -->
+            <div v-if="foodItems.length > 0 && filteredFoodItems.length === 0" class="empty-tip">
+              该分类下暂无食物数据
+            </div>
+            
+            <!-- 如果连总数据都没有 -->
+            <div v-if="foodItems.length === 0" class="empty-tip">
+              正在加载数据或暂无数据...
             </div>
           </div>
-
-          <!-- 空状态提示 -->
-          <div v-if="foodItems.length > 0 && filteredFoodItems.length === 0" class="empty-tip">
-            该分类下暂无食物数据
-          </div>
-          
-          <!-- 如果连总数据都没有 -->
-          <div v-if="foodItems.length === 0" class="empty-tip">
-            正在加载数据或暂无数据...
-          </div>
-        </div>
+          <template #placeholder>
+            <div class="skeleton-container">
+              <el-skeleton :rows="5" animated />
+            </div>
+          </template>
+        </client-only>
       </div>
     </main>
 
@@ -110,6 +117,9 @@ const categories = ref<CategoryOption[]>([]);
 // 使用 string 类型以兼容 el-tabs 的 name 属性
 const activeCategory = ref<string>("all");
 
+// 加载状态
+const isLoading = ref(true);
+
 // 核心修改：计算属性增加容错处理 (trim)
 const filteredFoodItems = computed(() => {
   if (activeCategory.value === "all") {
@@ -133,6 +143,7 @@ const handleCategoryChange = (val: TabPaneName) => {
 
 onMounted(async () => {
   try {
+    isLoading.value = true;
     // 获取数据
     const res: any = await $fetch("/api/food-items");
     const data: FoodItem[] = (res.data || []) as FoodItem[];
@@ -167,6 +178,8 @@ onMounted(async () => {
   } catch (err) {
     console.error("获取食物数据失败", err);
     // 这里可以添加一个用户友好的错误提示，比如使用 ElMessage
+  } finally {
+    isLoading.value = false;
   }
 });
 </script>
@@ -233,6 +246,19 @@ onMounted(async () => {
 
 .back-to-home {
   animation: fadeIn 0.5s ease-in;
+}
+
+/* 骨架屏样式 */
+.skeleton-container {
+  width: 100%;
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes fadeIn {
