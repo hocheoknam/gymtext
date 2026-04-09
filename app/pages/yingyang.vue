@@ -38,38 +38,45 @@
             </template>
             <el-button type="primary" @click="showAddFoodDialog = true">开始记录</el-button>
           </el-empty>
-          <!-- 时间线记录列表 -->
-          <el-timeline v-else>
-            <el-timeline-item
-              v-for="record in foodRecords"
-              :key="record.id"
-              :timestamp="formatTime(record.time)"
-              placement="top"
-            >
-              <el-card :body-style="{ padding: '10px' }" class="food-card" hoverable>
-                <div class="food-item">
-                  <!-- 食物信息显示区域 -->
-                  <div class="food-info">
-                    <h4>{{ record.name }}</h4>
-                    <p>分量: {{ record.portion }} {{ record.unit }}</p>
-                    <p>热量: {{ (record.calories || 0).toFixed(1) }} kcal</p>
-                    <p>蛋白质: {{ (record.protein || 0).toFixed(1) }} g | 碳水: {{ (record.carbs || 0).toFixed(1) }} g | 脂肪: {{ (record.fat || 0).toFixed(1) }} g</p>
-                  </div>
-                  <!-- 操作按钮组 -->
-                  <el-button-group>
-                    <el-button type="primary" size="small" @click="editFood(record)">
-                      <el-icon><EditPen /></el-icon>
-                      编辑
-                    </el-button>
-                    <el-button type="danger" size="small" @click="deleteFood(record.id)">
-                      <el-icon><Delete /></el-icon>
-                      删除
-                    </el-button>
-                  </el-button-group>
-                </div>
-              </el-card>
-            </el-timeline-item>
-          </el-timeline>
+          <!-- 按早午晚分组的记录列表 -->
+          <div v-else>
+            <div v-for="(records, timePeriod) in groupedFoodRecords" :key="timePeriod">
+              <div v-if="records.length > 0" class="time-group-header">
+                <el-divider content-position="left">{{ timePeriod }}</el-divider>
+                <el-timeline>
+                  <el-timeline-item
+                    v-for="record in records"
+                    :key="record.id"
+                    :timestamp="formatTime(record.time)"
+                    placement="top"
+                  >
+                    <el-card :body-style="{ padding: '10px' }" class="food-card" hoverable>
+                      <div class="food-item">
+                        <!-- 食物信息显示区域 -->
+                        <div class="food-info">
+                          <h4>{{ record.name }}</h4>
+                          <p>分量: {{ record.portion }} {{ record.unit }}</p>
+                          <p>热量: {{ (record.calories || 0).toFixed(1) }} kcal</p>
+                          <p>蛋白质: {{ (record.protein || 0).toFixed(1) }} g | 碳水: {{ (record.carbs || 0).toFixed(1) }} g | 脂肪: {{ (record.fat || 0).toFixed(1) }} g</p>
+                        </div>
+                        <!-- 操作按钮组 -->
+                        <el-button-group>
+                          <el-button type="primary" size="small" @click="editFood(record)">
+                            <el-icon><EditPen /></el-icon>
+                            编辑
+                          </el-button>
+                          <el-button type="danger" size="small" @click="deleteFood(record.id)">
+                            <el-icon><Delete /></el-icon>
+                            删除
+                          </el-button>
+                        </el-button-group>
+                      </div>
+                    </el-card>
+                  </el-timeline-item>
+                </el-timeline>
+              </div>
+            </div>
+          </div>
         </div>
       </el-card>
 
@@ -100,7 +107,12 @@
         <div class="nutrition-overview">
           <!-- 热量仪表盘 -->
           <div class="nutrition-item">
-            <el-progress type="dashboard" :percentage="caloriesPercentage" :width="80" />
+            <el-progress 
+              type="dashboard" 
+              :percentage="caloriesPercentage" 
+              :width="80" 
+              :color="getProgressColor(caloriesPercentage)" 
+            />
             <div class="nutrition-label">
               <span>热量</span>
               <div v-if="isGoalEditMode" class="nutrition-input">
@@ -118,7 +130,12 @@
           </div>
           <!-- 蛋白质仪表盘 -->
           <div class="nutrition-item">
-            <el-progress type="dashboard" :percentage="proteinPercentage" :width="80" color="#409EFF" />
+            <el-progress 
+              type="dashboard" 
+              :percentage="proteinPercentage" 
+              :width="80" 
+              :color="getProgressColor(proteinPercentage)" 
+            />
             <div class="nutrition-label">
               <span>蛋白质</span>
               <div v-if="isGoalEditMode" class="nutrition-input">
@@ -136,7 +153,12 @@
           </div>
           <!-- 碳水化合物仪表盘 -->
           <div class="nutrition-item">
-            <el-progress type="dashboard" :percentage="carbsPercentage" :width="80" color="#67C23A" />
+            <el-progress 
+              type="dashboard" 
+              :percentage="carbsPercentage" 
+              :width="80" 
+              :color="getProgressColor(carbsPercentage)" 
+            />
             <div class="nutrition-label">
               <span>碳水化合物</span>
               <div v-if="isGoalEditMode" class="nutrition-input">
@@ -154,7 +176,12 @@
           </div>
           <!-- 脂肪仪表盘 -->
           <div class="nutrition-item">
-            <el-progress type="dashboard" :percentage="fatPercentage" :width="80" color="#E6A23C" />
+            <el-progress 
+              type="dashboard" 
+              :percentage="fatPercentage" 
+              :width="80" 
+              :color="getProgressColor(fatPercentage)" 
+            />
             <div class="nutrition-label">
               <span>脂肪</span>
               <div v-if="isGoalEditMode" class="nutrition-input">
@@ -172,33 +199,7 @@
           </div>
         </div>
 
-        <!-- 营养比例图表 
-        <div class="nutrition-chart" style="margin: 20px 0;">
-          <div class="chart-container">
-            <div class="chart-center">
-              <div class="chart-title">营养比例</div>
-            </div>
-            <div class="chart-segments">
-               饼图分段 
-              <div 
-                v-for="(segment, index) in pieChartData" 
-                :key="index"
-                class="chart-segment"
-                :style="{
-                  backgroundColor: segment.itemStyle.color,
-                  transform: `rotate(${segment.offset}deg) skewY(${segment.angle}deg)`
-                }"
-              >
-                <div class="segment-label" :style="{
-                  transform: `skewY(${-segment.angle}deg) rotate(${-segment.offset - segment.angle/2}deg)`
-                }">
-                
-                  {{ segment.name }} {{ segment.percentage }}%
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>  -->
+
 
         <!-- 营养详情表格 -->
         <div class="nutrition-details">
@@ -325,6 +326,7 @@
             :step="1"
             style="width: 150px;"
             @change="onPortionChange"
+            @input="handleManualInput"
           />
           <!-- 后面的 el-select 单位选择保持不变 -->
           <el-select v-model="formData.unit" placeholder="选择单位" style="margin-left: 10px; width: 120px;">
@@ -335,19 +337,19 @@
           </el-select>
         </el-form-item>
         <el-form-item label="热量" prop="calories">
-          <el-input-number v-model="formData.calories" :min="0" :max="10000" :step="1" />
+          <el-input-number v-model="formData.calories" :min="0" :max="10000" :step="1" @input="handleManualInput" />
           <span class="unit" style="margin-left: 10px;">kcal</span>
         </el-form-item>
         <el-form-item label="蛋白质">
-          <el-input-number v-model="formData.protein" :min="0" :max="500" :step="0.1" />
+          <el-input-number v-model="formData.protein" :min="0" :max="500" :step="0.1" @input="handleManualInput" />
           <span class="unit" style="margin-left: 10px;">g</span>
         </el-form-item>
         <el-form-item label="碳水化合物">
-          <el-input-number v-model="formData.carbs" :min="0" :max="1000" :step="0.1" />
+          <el-input-number v-model="formData.carbs" :min="0" :max="1000" :step="0.1" @input="handleManualInput" />
           <span class="unit" style="margin-left: 10px;">g</span>
         </el-form-item>
         <el-form-item label="脂肪">
-          <el-input-number v-model="formData.fat" :min="0" :max="300" :step="0.1" />
+          <el-input-number v-model="formData.fat" :min="0" :max="300" :step="0.1" @input="handleManualInput" />
           <span class="unit" style="margin-left: 10px;">g</span>
         </el-form-item>
       </el-form>
@@ -525,6 +527,39 @@ const foodTypes = computed(() => {
   return uniqueFoods.size
 })
 
+// 新增：统一的进度条颜色判断函数
+const getProgressColor = (percentage) => {
+  if (percentage >= 100) {
+    return '#F56C6C'; // 满额/超标：鲜红色 (Element Plus danger color)
+  }
+  if (percentage >= 90) {
+    return '#E6A23C'; // 预警：橘黄色 (Element Plus warning color)
+  }
+  return '#409EFF';   // 正常：标准蓝色 (Element Plus primary color)
+};
+
+// 增加：按照早午晚分组的计算属性
+const groupedFoodRecords = computed(() => {
+  const groups = {
+    '早餐 (05:00-10:59)': [],
+    '午餐 (11:00-16:59)': [],
+    '晚餐 (17:00-23:59)': [],
+    '加餐/深夜': []
+  };
+
+  foodRecords.value.forEach(record => {
+    // 使用 record.time 字段来获取时间
+    const hour = new Date(record.time).getHours();
+    
+    if (hour >= 5 && hour < 11) groups['早餐 (05:00-10:59)'].push(record);
+    else if (hour >= 11 && hour < 17) groups['午餐 (11:00-16:59)'].push(record);
+    else if (hour >= 17 && hour < 24) groups['晚餐 (17:00-23:59)'].push(record);
+    else groups['加餐/深夜'].push(record);
+  });
+  
+  return groups;
+});
+
 // 计算属性：生成饼图数据
 const pieChartData = computed(() => {
   // 计算总热量（蛋白质和碳水4卡/克，脂肪9卡/克）
@@ -581,48 +616,98 @@ onMounted(() => {
   loadFoodDatabase() // 【新增】加载食物库
 })
 
-// 加载食物记录（从localStorage读取）
-function loadFoodRecords() {
-  const savedRecords = localStorage.getItem('foodRecords')
-  if (savedRecords) {
-    try {
-      foodRecords.value = JSON.parse(savedRecords)
-      // 按时间降序排序，确保最新时间在最上面
-      foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time))
-      console.log('从localStorage加载的食物记录:', foodRecords.value)
-    } catch (error) {
-      console.error('解析食物记录失败:', error)
-      foodRecords.value = []
-    }
-  } else {
-    console.log('localStorage中没有食物记录')
-    // 添加一些示例数据用于测试
-    foodRecords.value = [
-      {
-        id: '1',
-        name: '鸡蛋',
-        portion: 100,
-        unit: 'g',
-        calories: 155,
-        protein: 13,
-        carbs: 1.1,
-        fat: 11,
-        time: new Date().toISOString().split('T').join(' ').slice(0, 19)
-      },
-      {
-        id: '2',
-        name: '米饭',
-        portion: 100,
-        unit: 'g',
-        calories: 130,
-        protein: 2.6,
-        carbs: 28,
-        fat: 0.3,
-        time: new Date().toISOString().split('T').join(' ').slice(0, 19)
+// 加载食物记录（从后端API获取）
+async function loadFoodRecords() {
+  try {
+    // 从localStorage获取用户ID
+    let currentUserId = null;
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // 解析Token
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+      } catch (error) {
+        console.error('解析Token失败:', error);
       }
-    ]
-    saveFoodRecords()
-    console.log('添加了示例食物记录:', foodRecords.value)
+    }
+    // 如果没有Token或解析失败，使用默认用户ID 3
+    if (!currentUserId) {
+      currentUserId = 3;
+    }
+    
+    // 发送GET请求到API获取食物记录
+    const response = await fetch(`/api/food-records?user_id=${currentUserId}`);
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      foodRecords.value = data.data;
+      // 按时间降序排序，确保最新时间在最上面
+      foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
+      console.log('从API加载的食物记录:', foodRecords.value);
+      // 保存到localStorage作为缓存
+      saveFoodRecords();
+    } else {
+      // API请求失败时，尝试从localStorage读取
+      const savedRecords = localStorage.getItem('foodRecords');
+      if (savedRecords) {
+        try {
+          foodRecords.value = JSON.parse(savedRecords);
+          // 按时间降序排序，确保最新时间在最上面
+          foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
+          console.log('从localStorage加载的食物记录:', foodRecords.value);
+        } catch (error) {
+          console.error('解析食物记录失败:', error);
+          foodRecords.value = [];
+        }
+      } else {
+        console.log('localStorage中没有食物记录');
+        // 添加一些示例数据用于测试
+        foodRecords.value = [
+          {
+            id: '1',
+            name: '鸡蛋',
+            portion: 100,
+            unit: 'g',
+            calories: 155,
+            protein: 13,
+            carbs: 1.1,
+            fat: 11,
+            time: new Date().toISOString().split('T').join(' ').slice(0, 19)
+          },
+          {
+            id: '2',
+            name: '米饭',
+            portion: 100,
+            unit: 'g',
+            calories: 130,
+            protein: 2.6,
+            carbs: 28,
+            fat: 0.3,
+            time: new Date().toISOString().split('T').join(' ').slice(0, 19)
+          }
+        ];
+        saveFoodRecords();
+        console.log('添加了示例食物记录:', foodRecords.value);
+      }
+    }
+  } catch (error) {
+    console.error('加载食物记录失败:', error);
+    // 发生错误时，尝试从localStorage读取
+    const savedRecords = localStorage.getItem('foodRecords');
+    if (savedRecords) {
+      try {
+        foodRecords.value = JSON.parse(savedRecords);
+        // 按时间降序排序，确保最新时间在最上面
+        foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
+        console.log('从localStorage加载的食物记录:', foodRecords.value);
+      } catch (error) {
+        console.error('解析食物记录失败:', error);
+        foodRecords.value = [];
+      }
+    } else {
+      foodRecords.value = [];
+    }
   }
 }
 
@@ -661,6 +746,13 @@ async function saveFood() {
   if (!formRef.value) return;
   
   try {
+    // 强制类型转换，确保所有数值字段都是数字类型
+    formData.value.calories = Number(formData.value.calories);
+    formData.value.protein = Number(formData.value.protein);
+    formData.value.carbs = Number(formData.value.carbs);
+    formData.value.fat = Number(formData.value.fat);
+    formData.value.portion = Number(formData.value.portion);
+    
     await formRef.value.validate(); // 表单验证
     saving.value = true; // 显示加载状态
     
@@ -712,7 +804,10 @@ async function saveFood() {
       
       const data = await response.json();
       
-      if (!data.success) {
+      if (data.success && data.data) {
+        // 使用后端返回的 ID 而不是前端生成的 ID
+        foodData.id = data.data.id;
+      } else if (!data.success) {
         console.error('API保存失败:', data);
         ElMessage.error('保存失败: ' + (data.statusMessage || '未知错误'));
       }
@@ -785,10 +880,8 @@ async function deleteFood(id) {
     const resData = await response.json();
 
     if (resData.success) {
-      // 3. 后端删除成功后，才更新前端 UI 列表
-      foodRecords.value = foodRecords.value.filter(record => record.id !== id);
-      // 按时间降序排序，确保最新时间在最上面
-      foodRecords.value.sort((a, b) => new Date(b.time) - new Date(a.time));
+      // 3. 后端删除成功后，重新加载食物记录，确保前端和后端数据同步
+      await loadFoodRecords();
       saveFoodRecords(); // 更新本地缓存
       ElMessage.success('数据库记录已删除');
     } else {
@@ -900,11 +993,11 @@ const fetchLastFoodRecord = async (foodName) => {
 
     if (code === 200 && data) {
       // 只更新表单中的数值，不改变当前正在记录的日期和时间
-      formData.value.portion = data.portion;
-      formData.value.calories = data.total_calories;
-      formData.value.protein = data.total_protein;
-      formData.value.carbs = data.total_carbs;
-      formData.value.fat = data.total_fat;
+      formData.value.portion = Number(data.portion);
+      formData.value.calories = Number(data.total_calories);
+      formData.value.protein = Number(data.total_protein);
+      formData.value.carbs = Number(data.total_carbs);
+      formData.value.fat = Number(data.total_fat);
       
       ElMessage.success(`已自动加载上次“${foodName}”的记录数值`);
     }
@@ -921,6 +1014,16 @@ const onPortionChange = () => {
     // 仅仅重新换算，不再请求后端历史数据
     calculateNutritionByPortion(selectedFood);
   }
+}
+
+// 7. 处理手动输入，确保类型转换
+const handleManualInput = () => {
+  // 强制类型转换，确保所有数值字段都是数字类型
+  formData.value.calories = Number(formData.value.calories);
+  formData.value.protein = Number(formData.value.protein);
+  formData.value.carbs = Number(formData.value.carbs);
+  formData.value.fat = Number(formData.value.fat);
+  formData.value.portion = Number(formData.value.portion);
 }
 
 // 7. 切换目标编辑模式
@@ -1089,65 +1192,6 @@ function getDaysInPeriod() {
   color: #606266;
 }
 
-.chart-container {
-  position: relative;
-  width: 200px;
-  height: 200px;
-  margin: 0 auto;
-  border-radius: 50%;
-  overflow: hidden;
-  background: conic-gradient(
-    from 0deg,
-    #409EFF 0deg 360deg
-  );
-}
-
-.chart-center {
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  background: white;
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chart-title {
-  font-size: 14px;
-  color: #606266;
-}
-
-.chart-segments {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.chart-segment {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  transform-origin: center;
-  overflow: hidden;
-}
-
-.segment-label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: white;
-}
-
 .statistics-info {
   margin-top: 30px;
 }
@@ -1182,14 +1226,6 @@ function getDaysInPeriod() {
     gap: 20px;
   }
   
-  .chart-container {
-    width: 150px;
-    height: 150px;
-  }
-  
-  .chart-center {
-    width: 70px;
-    height: 70px;
-  }
+
 }
 </style>

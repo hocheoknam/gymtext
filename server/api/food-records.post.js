@@ -28,7 +28,22 @@ export default defineEventHandler(async (event) => {
     const finalTotalFat = Number((factor * (fat || 0)).toFixed(2));
     const finalTotalCarbs = Number((factor * (carbs || 0)).toFixed(2));
     
-    const createdAt = new Date(time).toISOString();
+    // 3. 处理时间并【自动判断早午晚】
+    const recordDate = new Date(time);
+    const hour = recordDate.getHours();
+    let mealType = '加餐'; // 默认值
+
+    if (hour >= 5 && hour < 11) {
+      mealType = '早餐';
+    } else if (hour >= 11 && hour < 17) {
+      mealType = '午餐';
+    } else if (hour >= 17 && hour < 23) {
+      mealType = '晚餐';
+    } else {
+      mealType = '深夜加餐';
+    }
+
+    const createdAt = recordDate.toISOString();
 
     // 3. 修改 INSERT 语句，包含所有列
     const result = await sql`
@@ -46,7 +61,7 @@ export default defineEventHandler(async (event) => {
       ) VALUES (
         ${userId}, 
         ${food_item_id}, 
-        '其他', 
+        ${mealType}, 
         ${portion}, 
         ${finalTotalCalories}, 
         ${finalTotalProtein}, 

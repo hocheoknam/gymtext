@@ -98,7 +98,7 @@
           </div>
           
           <div class="challenge-actions">
-            <el-button v-if="isParticipated && challenge.status === 'ongoing'" :type="isCheckedIn ? 'success' : 'primary'" size="default" @click="handleCheckIn" :loading="checkInLoading">
+            <el-button v-if="isParticipated && getChallengeStatus(challenge.start_date, challenge.target_duration).text === '进行中'" :type="isCheckedIn ? 'success' : 'primary'" size="default" @click="handleCheckIn" :loading="checkInLoading">
               {{ isCheckedIn ? '打卡完成🚀继续保持' : '打卡' }}
             </el-button>
             <el-button v-else-if="isParticipated" type="success" size="default" @click="handleCancelParticipation(challenge.id)">
