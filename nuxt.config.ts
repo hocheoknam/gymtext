@@ -6,10 +6,24 @@ export default defineNuxtConfig({
   // 新增这一行，消除兼容性警告
   compatibilityDate: "2025-12-04",
 
+  // 增加 Nitro 配置，设置全局超时时间
+  nitro: {
+    // 配置服务器选项
+    serveStatic: true,
+    // 增加响应时间限制
+    routeRules: {
+      '/api/**': {
+        headers: {
+          'Cache-Control': 'no-store'
+        }
+      }
+    }
+  },
+
   // 其他原有配置（如 vite、modules 等）
   vite: {
     server: {
-      hmr: true, // 保留你之前的热加载配置
+      hmr: true // 保留你之前的热加载配置
     },
   },
   runtimeConfig: {

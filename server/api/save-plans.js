@@ -35,9 +35,9 @@ export default defineEventHandler(async (event) => {
         for (const ex of exercises) {
           await sql`
             INSERT INTO exercise_plan 
-            (user_id, day, title, type, duration, intensity, details)
+            (user_id, day, title, type, duration, intensity, details, workout_plan, description, sets, reps, rest_time)
             VALUES 
-            (${body.user_id}, ${ex.day}, ${ex.title}, ${ex.type || null}, ${ex.duration || 0}, ${ex.intensity || '中等'}, ${ex.details || ''})
+            (${body.user_id}, ${ex.day}, ${ex.title}, ${ex.type || null}, ${ex.duration || 0}, ${ex.intensity || '中等'}, ${ex.details || ''}, ${ex.workout_plan ? JSON.stringify(ex.workout_plan) : null}, ${ex.description || ''}, ${ex.sets || 0}, ${ex.reps || 0}, ${ex.rest_time || 0})
           `;
         }
 

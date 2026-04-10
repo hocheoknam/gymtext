@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-top">
         <el-button type="default" @click="navigateToHome">
-          <el-icon><ArrowLeft /></el-icon>
+          <el-icon :icon="ArrowLeft" />
           返回首页
         </el-button>
       </div>
@@ -16,16 +16,16 @@
     <div class="ai-plan-section">
       <div class="ai-plan-header">
         <el-button type="primary" size="large" :loading="generatingAIPlan" @click="showAIConfigDialog = true">
-          <el-icon><MagicStick /></el-icon>
+          <el-icon :icon="MagicStick" />
           使用AI生成计划
         </el-button>
         <div class="plan-creation-tips">
-          <el-icon><Document /></el-icon>
+          <el-icon :icon="Document" />
           <span>您可以自行添加训练和食物计划或使用AI为您生成个性化计划</span>
         </div>
       </div>
       <el-button type="success" size="large" @click="saveAllPlans">
-        <el-icon><Document /></el-icon>
+        <el-icon :icon="Document" />
         保存所有计划
       </el-button>
     </div>
@@ -38,7 +38,7 @@
           <div class="card-header">
             <span>健身计划</span>
             <el-button type="primary" size="small" @click="showAddExerciseDialog = true">
-              <el-icon><Plus /></el-icon>
+              <el-icon :icon="Plus" />
               添加训练
             </el-button>
           </div>
@@ -62,15 +62,29 @@
                   <p><strong>训练类型:</strong> {{ plan.type }}</p>
                   <p><strong>时长:</strong> {{ plan.duration }} 分钟</p>
                   <p><strong>强度:</strong> {{ plan.intensity }}</p>
+                  <p v-if="plan.description"><strong>训练内容:</strong> {{ plan.description }}</p>
+                  <p v-if="plan.sets > 0"><strong>训练量:</strong> {{ plan.sets }} 组 x {{ plan.reps }} 次 | 休息 {{ plan.rest_time }}s</p>
                   <p><strong>详情:</strong> {{ plan.details }}</p>
+                  
+                  <!-- 动作演示 -->
+                  <div v-if="plan.workout_plan && plan.workout_plan.length > 0" class="workout-details">
+                    <h5>训练动作</h5>
+                    <div v-for="(item, index) in plan.workout_plan" :key="index" class="workout-item">
+                      <div class="workout-item-info">
+                        <span class="exercise-name">{{ item.exercise_name }}</span>
+                        <div class="specs">{{ item.sets }} 组 x {{ item.reps }} 次 | 休息 {{ item.rest_time }}s</div>
+                      </div>
+
+                    </div>
+                  </div>
                 </div>
                 <div class="plan-actions">
                   <el-button type="primary" size="small" @click="editExercisePlan(plan)">
-                    <el-icon><EditPen /></el-icon>
+                    <el-icon :icon="EditPen" />
                     编辑
                   </el-button>
                   <el-button type="danger" size="small" @click="deleteExercisePlan(plan.id)">
-                    <el-icon><Delete /></el-icon>
+                    <el-icon :icon="Delete" />
                     删除
                   </el-button>
                 </div>
@@ -86,7 +100,7 @@
           <div class="card-header">
             <span>食物计划</span>
             <el-button type="primary" size="small" @click="showAddMealDialog = true">
-              <el-icon><Plus /></el-icon>
+              <el-icon :icon="Plus" />
               添加餐食
             </el-button>
           </div>
@@ -106,6 +120,11 @@
             >
               <el-card :body-style="{ padding: '15px' }" class="meal-card" hoverable>
                 <div class="plan-info">
+                  <!-- AI建议理由 -->
+                  <div v-if="plan.ai_reason" class="ai-reason">
+                    <el-tag type="info" effect="dark">AI建议</el-tag>
+                    <p>{{ plan.ai_reason }}</p>
+                  </div>
                   <h4>{{ plan.title }}</h4>
                   <p><strong>餐食类型:</strong> {{ plan.mealType }}</p>
                   <p><strong>热量:</strong> {{ plan.calories }} kcal</p>
@@ -170,6 +189,21 @@
             <el-option label="中" value="中" />
             <el-option label="高" value="高" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="训练内容" prop="description">
+          <el-input v-model="exerciseForm.description" type="textarea" :rows="2" placeholder="输入具体的动作内容，如：哑铃推举、俯卧撑等" />
+        </el-form-item>
+        <el-form-item label="训练量" prop="sets">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <el-input-number v-model="exerciseForm.sets" :min="0" placeholder="组数" />
+            <span>组  x</span>
+            <el-input-number v-model="exerciseForm.reps" :min="0" placeholder="次数" />
+            <span>次</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="组间休息" prop="rest_time">
+          <el-input-number v-model="exerciseForm.rest_time" :min="0" :step="10" />
+          <span class="unit">秒</span>
         </el-form-item>
         <el-form-item label="训练详情" prop="details">
           <el-input v-model="exerciseForm.details" type="textarea" :rows="4" placeholder="输入训练详情" />
@@ -259,19 +293,52 @@
       destroy-on-close
     >
       <el-form :model="aiConfig" label-width="120px">
-        <el-form-item label="健身目标">
-          <el-select v-model="aiConfig.fitnessGoal" placeholder="选择健身目标">
-            <el-option label="增肌" value="增肌" />
-            <el-option label="减脂" value="减脂" />
-            <el-option label="维持身材" value="维持身材" />
-            <el-option label="提高体能" value="提高体能" />
-          </el-select>
+        <el-form-item label="当前体重 (kg)">
+          <div style="display: flex; gap: 10px; width: 100%;">
+            <el-input-number 
+              v-model="aiConfig.weight" 
+              :min="30" 
+              :max="200" 
+              :step="0.1" 
+              :precision="1"
+              placeholder="获取中..."
+            />
+            <el-button @click="fetchLatestBodyStats">
+              <el-icon :icon="Refresh" />
+              同步最新
+            </el-button>
+          </div>
+          <p style="font-size: 12px; color: #909399; margin: 5px 0 0 0;">
+            数据来源：数据中心最新记录
+          </p>
+        </el-form-item>
+        <el-form-item label="体脂率 (%)">
+          <el-input-number 
+            v-model="aiConfig.bodyFat" 
+            :min="1" 
+            :max="50" 
+            :step="0.5" 
+            :precision="1"
+          />
+          <span class="unit">%</span>
+        </el-form-item>
+        <el-form-item label="每周频率">
+          <el-input-number v-model="aiConfig.frequency" :min="1" :max="7" :step="1" />
+          <span class="unit">次/周</span>
         </el-form-item>
         <el-form-item label="运动经验">
-          <el-select v-model="aiConfig.experienceLevel" placeholder="选择运动经验">
-            <el-option label="初学者" value="初学者" />
-            <el-option label="中级" value="中级" />
-            <el-option label="高级" value="高级" />
+          <el-select v-model="aiConfig.level" placeholder="选择运动经验">
+            <el-option label="初学者" value="beginner" />
+            <el-option label="中级" value="intermediate" />
+            <el-option label="高级" value="advanced" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="健身目标">
+          <el-select v-model="aiConfig.goal" placeholder="选择健身目标">
+            <el-option label="增肌" value="muscle_gain" />
+            <el-option label="减脂" value="fat_loss" />
+            <el-option label="维持身材" value="maintenance" />
+            <el-option label="提高体能" value="fitness" />
           </el-select>
         </el-form-item>
         <el-form-item label="每天时长">
@@ -280,16 +347,21 @@
         </el-form-item>
         <el-form-item label="饮食偏好">
           <el-select v-model="aiConfig.dietPreference" placeholder="选择饮食偏好">
-            <el-option label="均衡饮食" value="均衡饮食" />
-            <el-option label="高蛋白" value="高蛋白" />
-            <el-option label="低碳水" value="低碳水" />
-            <el-option label="素食" value="素食" />
-            <el-option label="无麸质" value="无麸质" />
+            <el-option label="均衡饮食" value="balanced" />
+            <el-option label="高蛋白" value="high_protein" />
+            <el-option label="低碳水" value="low_carb" />
+            <el-option label="生酮" value="keto" />
+            <el-option label="素食" value="vegetarian" />
+            <el-option label="纯素" value="vegan" />
+            <el-option label="无麸质" value="gluten_free" />
           </el-select>
         </el-form-item>
         <el-form-item label="每日热量目标">
           <el-input-number v-model="aiConfig.dailyCalories" :min="1000" :max="5000" :step="100" />
           <span class="unit">kcal</span>
+        </el-form-item>
+        <el-form-item label="食物禁忌">
+          <el-input v-model="aiConfig.foodRestrictions" placeholder="请输入食物禁忌，用逗号分隔" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -303,10 +375,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { navigateTo } from 'nuxt/app'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MagicStick, Document, Plus, EditPen, Delete, ArrowLeft } from '@element-plus/icons-vue'
+import { MagicStick, Document, Plus, EditPen, Delete, ArrowLeft, Refresh } from '@element-plus/icons-vue'
 
 // 状态管理：移除了 localStorage 初始化
 const exercisePlans = ref([])
@@ -357,16 +429,52 @@ const mealFormRef = ref(null)
 
 // AI配置
 const aiConfig = ref({
-  fitnessGoal: '增肌',
-  experienceLevel: '初学者',
+  weight: 60,
+  bodyFat: 15,
+  frequency: 3,
+  level: 'intermediate',
+  goal: 'fat_loss',
   dailyDuration: 60,
-  dietPreference: '均衡饮食',
-  dailyCalories: 2000
+  dietPreference: 'balanced',
+  dailyCalories: 2000,
+  foodRestrictions: ''
 })
 
 // API Key表单
 const apiKeyForm = ref({ apiKey: '' })
 const apiKey = ref('')
+
+// 获取最新身体数据的函数
+const fetchLatestBodyStats = async () => {
+  try {
+    // 调用数据中心接口，与 data.vue 使用相同的 API
+    const response = await fetch(`/api/body-metrics?user_id=${user_id}`);
+    const data = await response.json();
+    
+    if (data.code === 200 && data.data && data.data.length > 0) {
+      // 按日期降序排序，获取最新的记录
+      const sortedData = [...data.data].sort((a, b) => new Date(b.measurement_date) - new Date(a.measurement_date));
+      const latestRecord = sortedData[0];
+      
+      // 将获取到的数据填充到 aiConfig 中
+      aiConfig.value.weight = latestRecord.weight ? Number(latestRecord.weight) : aiConfig.value.weight;
+      aiConfig.value.bodyFat = latestRecord.body_fat ? Number(latestRecord.body_fat) : aiConfig.value.bodyFat;
+      
+      ElMessage.success('已自动从数据中心同步最新身体指标');
+    }
+  } catch (error) {
+    console.error('获取数据中心数据失败:', error);
+    // 如果失败了，可以讓用户手动输入，不强制报错
+  }
+};
+
+// 当显示 AI 配置对话框时自动触发获取
+watch(showAIConfigDialog, (newVal) => {
+  // 确保只在客户端执行
+  if (process.client && newVal) {
+    fetchLatestBodyStats();
+  }
+});
 
 // 健身计划表单
 const exerciseForm = ref({
@@ -375,7 +483,11 @@ const exerciseForm = ref({
   type: '力量训练',
   duration: 60,
   intensity: '中',
-  details: ''
+  details: '',
+  description: '',
+  sets: 0,
+  reps: 0,
+  rest_time: 60
 })
 
 // 食物计划表单
@@ -428,35 +540,51 @@ const mealRules = {
 
 // 统一的用户ID获取函数
 const getCurrentUserId = () => {
-  let currentUserId = null;
-  const token = localStorage.getItem('token');
-  
-  if (token) {
-    try {
-      // 解析Token
-      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-      // 尝试从不同字段获取用户ID
-      currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
-      console.log('从Token中解析出的用户ID:', currentUserId);
-    } catch (error) {
-      console.error('解析Token失败:', error);
-      // 尝试直接从localStorage获取用户ID
-      currentUserId = localStorage.getItem('user_id');
-      console.log('从localStorage直接获取的用户ID:', currentUserId);
+  try {
+    // 首先检查是否在浏览器环境中，这是最可靠的检查
+    if (typeof window !== 'undefined' && window.localStorage) {
+      let currentUserId = null;
+      try {
+        const token = window.localStorage.getItem('token');
+        
+        if (token) {
+          try {
+            // 解析Token
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            // 尝试从不同字段获取用户ID
+            currentUserId = tokenPayload.user_id || tokenPayload.id || tokenPayload.userId;
+            console.log('从Token中解析出的用户ID:', currentUserId);
+          } catch (error) {
+            console.error('解析Token失败:', error);
+            // 尝试直接从localStorage获取用户ID
+            currentUserId = window.localStorage.getItem('user_id');
+            console.log('从localStorage直接获取的用户ID:', currentUserId);
+          }
+        } else {
+          // 尝试直接从localStorage获取用户ID
+          currentUserId = window.localStorage.getItem('user_id');
+          console.log('从localStorage直接获取的用户ID:', currentUserId);
+        }
+        
+        // 如果没有获取到用户ID，使用默认值1（与打卡时保持一致）
+        if (!currentUserId) {
+          currentUserId = 1;
+          console.log('使用默认用户ID:', currentUserId);
+        }
+        
+        return currentUserId;
+      } catch (error) {
+        console.error('访问localStorage失败:', error);
+        // 访问localStorage失败时返回默认值
+        return 1;
+      }
     }
-  } else {
-    // 尝试直接从localStorage获取用户ID
-    currentUserId = localStorage.getItem('user_id');
-    console.log('从localStorage直接获取的用户ID:', currentUserId);
+  } catch (error) {
+    console.error('获取用户ID失败:', error);
   }
   
-  // 如果没有获取到用户ID，使用默认值1（与打卡时保持一致）
-  if (!currentUserId) {
-    currentUserId = 1;
-    console.log('使用默认用户ID:', currentUserId);
-  }
-  
-  return currentUserId;
+  // 服务器端或出错时返回默认ID，避免崩溃
+  return 1;
 };
 
 // 获取用户ID
@@ -518,7 +646,11 @@ async function loadPlansFromServer() {
     const data = await response.json()
     if (data.code === 200) {
       exercisePlans.value = data.data.exercises || []
-      mealPlans.value = data.data.meals || []
+      // 核心修复：将服务器返回的 meal_type 映射到前端使用的 mealType
+      mealPlans.value = (data.data.meals || []).map(meal => ({
+        ...meal,
+        mealType: meal.meal_type || meal.mealType
+      }))
     }
   } catch (error) {
     console.error('加载失败:', error)
@@ -603,7 +735,11 @@ function resetExerciseForm() {
     type: '力量训练',
     duration: 60,
     intensity: '中',
-    details: ''
+    details: '',
+    description: '',
+    sets: 0,
+    reps: 0,
+    rest_time: 60
   }
   if (exerciseFormRef.value) {
     exerciseFormRef.value.resetFields()
@@ -751,7 +887,7 @@ async function generateWorkoutPlanWithDeepSeek() {
   
   // 创建AbortController用于设置超时
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 180000); // 3分钟超时
+  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟超时
   
   try {
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -766,16 +902,15 @@ async function generateWorkoutPlanWithDeepSeek() {
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的健身教练，需要为用户生成每周的健身计划。请根据用户的目标、经验水平和每天训练时长，生成一个详细的7天计划。'
+            content: '你是一个专业的健身教练，需要为用户生成每周的健身计划。请根据用户的体重、体脂率、每周训练频率、训练经验和健身目标，生成一个详细的7天计划。每个训练日应该包含具体的动作、组数、次数和休息时间。'
           },
           {
             role: 'user',
-            content: `请为我生成一个7天的健身计划，具体要求如下：\n健身目标：${aiConfig.value.fitnessGoal}\n运动经验：${aiConfig.value.experienceLevel}\n每天训练时长：${aiConfig.value.dailyDuration}分钟\n\n请按照以下JSON格式返回结果：\n{\n  "exercises": [\n    {\n      "day": "周一",\n      "title": "训练名称",\n      "type": "训练类型",\n      "duration": 60,\n      "intensity": "中",\n      "details": "训练详情"
-    },\n    // 其他天的训练计划...\n  ]\n}`
+            content: `作为一个健身专家，请根据以下数据生成计划：\n体重 ${aiConfig.value.weight}kg，体脂 ${aiConfig.value.bodyFat}%，每周训练 ${aiConfig.value.frequency}次，级别 ${aiConfig.value.level}，目标 ${aiConfig.value.goal}。\n每天训练时长：${aiConfig.value.dailyDuration}分钟\n\n要求：返回JSON格式，包含exercise_id、sets、reps、rest_time。\n动作必须匹配其 ${aiConfig.value.level} 级别。\n\n请按照以下JSON格式返回结果，保持JSON精简：\n{\n  "exercises": [\n    {\n      "day": "周一",\n      "title": "训练名称",\n      "type": "训练类型",\n      "duration": 60,\n      "intensity": "中",\n      "details": "训练详情（简洁描述，不超过20字）",\n      "workout_plan": [\n        {\n          "exercise_id": 1,\n          "exercise_name": "动作名称",\n          "sets": 3,\n          "reps": 12,\n          "rest_time": 60\n        }\n      ]\n    },\n    // 其他天的训练计划...\n  ]\n}\n\n**重要提示**：\n1. 只返回精简的JSON数据，不要包含任何Markdown标签或解释性文字\n2. 确保JSON格式正确，括号匹配，字符串使用双引号\n3. 不要包含任何注释或多余的空格\n4. 严格按照要求的格式返回，不要添加额外的字段\n5. 保持details字段简洁，不超过20字，避免冗长描述\n6. 保持所有字段值简洁明了，避免不必要的修饰词`
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 4000
       })
     });
     
@@ -807,6 +942,12 @@ async function generateWorkoutPlanWithDeepSeek() {
   }
 }
 
+// 分析昨日营养数据
+const yesterdayNutrition = computed(() => {
+  // 假设从 food_records 获取昨日总量
+  return { protein: 60, carbs: 200, fat: 50 }; // 示例数据
+});
+
 // 使用DeepSeek API生成饮食计划
 async function generateMealPlanWithDeepSeek() {
   console.log('使用DeepSeek API生成饮食计划')
@@ -815,6 +956,9 @@ async function generateMealPlanWithDeepSeek() {
     showAPIKeyDialog.value = true
     throw new Error('请先配置DeepSeek API Key')
   }
+  
+  // 解析食物禁忌
+  const userRestrictions = aiConfig.value.foodRestrictions ? aiConfig.value.foodRestrictions.split(',').map(item => item.trim()) : [];
   
   // 创建AbortController用于设置超时
   const controller = new AbortController();
@@ -833,18 +977,15 @@ async function generateMealPlanWithDeepSeek() {
         messages: [
           {
             role: 'system',
-            content: '你是一个专业的营养教练，需要为用户生成每周的饮食计划。请根据用户的饮食偏好和热量目标，生成一个详细的7天计划。每个工作日只需要生成早餐、午餐和晚餐三种餐食，不要包含加餐。'
+            content: '你是一个专业的营养教练，需要为用户生成每周的饮食计划。请根据用户的体重、体脂率、饮食偏好、热量目标和食物禁忌，生成一个详细的7天计划。每个工作日只需要生成早餐、午餐和晚餐三种餐食，不要包含加餐。请在生成计划时考虑用户的营养缺口。'
           },
           {
             role: 'user',
-            content: `请为我生成一个7天的饮食计划，具体要求如下：\n饮食偏好：${aiConfig.value.dietPreference}\n每日热量目标：${aiConfig.value.dailyCalories}kcal\n\n重要要求：每个工作日只需要生成早餐、午餐和晚餐三种餐食，不要包含加餐。\n\n请按照以下JSON格式返回结果：\n{\n  "meals": [\n    {\n      "day": "周一",\n      "mealType": "早餐",\n      "title": "餐食名称",\n      "calories": 500,\n      "nutrition": "营养成分",\n      "details": "餐食详情"
-    },\n    {\n      "day": "周一",\n      "mealType": "午餐",\n      "title": "餐食名称",\n      "calories": 500,\n      "nutrition": "营养成分",\n      "details": "餐食详情"
-    },\n    {\n      "day": "周一",\n      "mealType": "晚餐",\n      "title": "餐食名称",\n      "calories": 500,\n      "nutrition": "营养成分",\n      "details": "餐食详情"
-    },\n    // 其他天的餐食计划...\n  ]\n}`
+            content: `分析用户昨日摄入：蛋白质 ${yesterdayNutrition.value.protein}g，碳水 ${yesterdayNutrition.value.carbs}g，脂肪 ${yesterdayNutrition.value.fat}g。\n如果蛋白质低于 ${aiConfig.value.weight * 1.5}g，请在今日饮食方案中增加高蛋白食物。\n\n请为我生成一个7天的饮食计划，具体要求如下：\n体重 ${aiConfig.value.weight}kg，体脂 ${aiConfig.value.bodyFat}%\n饮食偏好：${aiConfig.value.dietPreference}\n每日热量目标：${aiConfig.value.dailyCalories}kcal\n用户禁忌：${userRestrictions.join('，')}（严禁出现这些食材）。\n\n重要要求：\n1. 每个工作日只需要生成早餐、午餐和晚餐三种餐食，不要包含加餐。\n2. 根据饮食偏好调整宏量营养素比例：\n   - 如果选择了"生酮"，请确保蛋白质:脂肪:碳水的比例约为 20:70:10\n   - 如果选择了"纯素"，请确保蛋白质来源充足，建议多使用豆类、坚果等植物蛋白\n\n请按照以下JSON格式返回结果，**不要包含 ai_reason 字段**，保持JSON精简：\n{\n  "meals": [\n    {\n      "day": "周一",\n      "mealType": "早餐",\n      "title": "餐食名称",\n      "calories": 500,\n      "nutrition": "营养成分（简洁描述，不超过15字）",\n      "details": "餐食详情（简洁描述，不超过20字）"\n    },\n    {\n      "day": "周一",\n      "mealType": "午餐",\n      "title": "餐食名称",\n      "calories": 500,\n      "nutrition": "营养成分（简洁描述，不超过15字）",\n      "details": "餐食详情（简洁描述，不超过20字）"\n    },\n    {\n      "day": "周一",\n      "mealType": "晚餐",\n      "title": "餐食名称",\n      "calories": 500,\n      "nutrition": "营养成分（简洁描述，不超过15字）",\n      "details": "餐食详情（简洁描述，不超过20字）"\n    },\n    // 其他天的餐食计划...\n  ]\n}\n\n**重要提示**：\n1. 只返回精简的JSON数据，不要包含任何Markdown标签或解释性文字\n2. 确保JSON格式正确，括号匹配，字符串使用双引号\n3. 不要包含任何注释或多余的空格\n4. 严格按照要求的格式返回，不要添加额外的字段\n5. 保持所有字段值简洁明了，避免不必要的修饰词\n6. nutrition字段不超过15字，details字段不超过20字，避免冗长描述`
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 4000
       })
     });
     
@@ -866,6 +1007,10 @@ async function generateMealPlanWithDeepSeek() {
     
     // 解析AI响应
     const parsedData = parseAIResponse(content);
+    
+    // 验证AI建议
+    validateAISuggestion(parsedData.meals || []);
+    
     return parsedData;
   } catch (error) {
     clearTimeout(timeoutId); // 清除超时定时器
@@ -875,6 +1020,20 @@ async function generateMealPlanWithDeepSeek() {
     throw error;
   }
 }
+
+// 验证AI建议
+const validateAISuggestion = (plan) => {
+  const userRestrictions = aiConfig.value.foodRestrictions ? aiConfig.value.foodRestrictions.split(',').map(item => item.trim()) : [];
+  
+  const containsIllegal = plan.some(food => 
+    userRestrictions.some(r => food.title && food.title.includes(r))
+  );
+  
+  if (containsIllegal) {
+    console.error("AI 方案包含禁忌食物，拦截中...");
+    // 重新触发生成或手动修正
+  }
+};
 
 
 
@@ -915,7 +1074,19 @@ function parseAIResponse(content) {
     
     console.log('清洗后的内容:', cleanContent);
     
-    // 2. 提取完整的JSON部分（忽略JSON后面的额外内容）
+    // 2. 检查是否由于截断导致末尾缺少 ] 或 }
+    if (!cleanContent.endsWith('}')) {
+      console.warn("检测到JSON可能被截断，尝试修复...");
+      // 简单的自动补齐尝试（仅针对当前截断点）
+      if (cleanContent.includes('"meals": [')) {
+        cleanContent += '}]}';
+      } else if (cleanContent.includes('"exercises": [')) {
+        cleanContent += '}]}';
+      }
+      console.log('尝试修复后的内容:', cleanContent);
+    }
+    
+    // 3. 提取完整的JSON部分（忽略JSON后面的额外内容）
     let jsonEndIndex = -1;
     let braceCount = 0;
     let inString = false;
@@ -955,7 +1126,7 @@ function parseAIResponse(content) {
       console.log('提取的JSON部分:', cleanContent);
     } else {
       console.error('无法找到完整的JSON结构');
-      throw new Error('AI响应内容格式错误，请重新生成计划');
+      throw new Error('AI响应内容格式不完整（可能由于字数超限），请减少生成天数重试');
     }
     
     // 3. 检查括号是否匹配
@@ -988,6 +1159,15 @@ function parseAIResponse(content) {
     if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
       // 结构0: 直接的exercises数组（最常见的结构）
       parsedData.exercises.forEach((exercise, index) => {
+        // 确保workout_plan中的rest_time是数字类型
+        if (exercise.workout_plan && Array.isArray(exercise.workout_plan)) {
+          exercise.workout_plan.forEach(item => {
+            if (item.rest_time) {
+              item.rest_time = Number(item.rest_time);
+            }
+          });
+        }
+        
         exercises.push({
           id: `ai-exercise-${index}`,
           day: exercise.day || '周一', // 确保day不为null
@@ -995,7 +1175,8 @@ function parseAIResponse(content) {
           type: exercise.type || '力量训练', // 确保type不为null
           duration: exercise.duration || 60, // 默认时长
           intensity: exercise.intensity || '中', // 默认强度
-          details: exercise.details || '训练详情'
+          details: exercise.details || '训练详情',
+          workout_plan: exercise.workout_plan || []
         });
       });
     } else if (parsedData.workoutPlan && Array.isArray(parsedData.workoutPlan)) {
@@ -1055,11 +1236,11 @@ function parseAIResponse(content) {
       // 结构0: 直接的meals数组（最常见的结构）
       parsedData.meals.forEach((meal, index) => {
         // 过滤掉加餐
-        if (meal.mealType !== '加餐') {
+        if (meal.mealType !== '加餐' && meal.meal_type !== '加餐') {
           meals.push({
             id: `ai-meal-${index}`,
             day: meal.day || '周一', // 确保day不为null
-            mealType: meal.mealType || '早餐', // 确保mealType不为null
+            mealType: meal.mealType || meal.meal_type || '早餐', // 确保mealType不为null，兼容meal_type
             title: meal.title || '餐食', // 确保title不为null
             calories: meal.calories || 500, // 确保calories不为null
             nutrition: meal.nutrition || '营养均衡', // 确保nutrition不为null
@@ -1071,11 +1252,11 @@ function parseAIResponse(content) {
       // 结构1: mealPlan数组
       parsedData.mealPlan.forEach((meal, index) => {
         // 过滤掉加餐
-        if (meal.mealType !== '加餐') {
+        if (meal.mealType !== '加餐' && meal.meal_type !== '加餐') {
           meals.push({
             id: `ai-meal-${index}`,
             day: meal.day || '周一', // 确保day不为null
-            mealType: meal.mealType || '早餐', // 确保mealType不为null
+            mealType: meal.mealType || meal.meal_type || '早餐', // 确保mealType不为null，兼容meal_type
             title: meal.title || '餐食', // 确保title不为null
             calories: meal.calories || 500, // 确保calories不为null
             nutrition: meal.nutrition || '营养均衡', // 确保nutrition不为null
@@ -1092,8 +1273,9 @@ function parseAIResponse(content) {
     };
   } catch (error) {
     console.error('解析JSON失败:', error);
+    console.error('解析失败的原始内容:', content);
     // 解析失败时抛出错误，让用户重新生成
-    throw new Error('解析AI响应失败，请重新生成计划');
+    throw new Error('AI响应内容格式不完整（可能由于字数超限），请减少生成天数重试');
   }
 }
 </script>

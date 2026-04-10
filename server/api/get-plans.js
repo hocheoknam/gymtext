@@ -38,12 +38,41 @@ export default defineEventHandler(async (event) => {
           `
         ]);
 
+        // 处理健身计划数据，智能判断 workout_plan 类型
+        const processedExercises = exerciseRes.map(ex => {
+          let parsedPlan = [];
+          
+          if (ex.workout_plan) {
+            // 如果已经是对象（JSONB 自动处理了），直接用；如果是字符串，才解析
+            if (typeof ex.workout_plan === 'string') {
+              try {
+                parsedPlan = JSON.parse(ex.workout_plan);
+              } catch (e) {
+                console.error('解析 workout_plan 失败:', e);
+                parsedPlan = [];
+              }
+            } else {
+              parsedPlan = ex.workout_plan;
+            }
+          }
+
+          return {
+            ...ex,
+            workout_plan: parsedPlan
+          };
+        });
+
+        // 处理饮食计划数据，保持字段名一致
+        const processedMeals = mealRes.map(meal => ({
+          ...meal
+        }));
+
         return {
           code: 200,
           message: 'success',
           data: {
-            exercises: exerciseRes,
-            meals: mealRes
+            exercises: processedExercises,
+            meals: processedMeals
           }
         };
 
