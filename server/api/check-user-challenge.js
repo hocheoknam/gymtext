@@ -18,17 +18,30 @@ export default defineEventHandler(async (event) => {
     }
     
     // 查询用户是否参与了该挑战
-    const result = await sql`
+    const userChallengeResult = await sql`
       SELECT *
       FROM user_challenges
       WHERE user_id = ${user_id} AND challenge_id = ${challenge_id}
     `;
     
-    if (result.length > 0) {
+    if (userChallengeResult.length > 0) {
+      const userChallenge = userChallengeResult[0];
+      
+      // 查询打卡次数
+      const checkinResult = await sql`
+        SELECT COUNT(*) as count FROM checkins 
+        WHERE user_id = ${user_id} AND challenge_id = ${userChallenge.id}
+      `;
+      
+      const checkinCount = checkinResult[0].count || 0;
+      
+      // 更新返回数据，使用打卡次数作为 current_progress
+      userChallenge.current_progress = checkinCount;
+      
       return {
         code: 200,
         message: '用户已参与该挑战',
-        data: result[0]
+        data: userChallenge
       };
     } else {
       return {

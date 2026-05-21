@@ -57,9 +57,9 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    // 3. 检查用户是否参与了该挑战
+    // 6. 检查用户是否参与了该挑战
     const userChallengeResult = await sql`
-      SELECT id
+      SELECT id, current_progress, target_duration
       FROM user_challenges
       WHERE user_id = ${user_id} AND challenge_id = ${challenge_id}
     `;
@@ -72,12 +72,16 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    // 4. 检查今天是否已经打卡
+    const userChallengeId = userChallengeResult[0].id;
+    const currentProgress = userChallengeResult[0].current_progress;
+    const targetDuration = userChallengeResult[0].target_duration;
+
+    // 7. 检查今天是否已经打卡
     const todayCheckin = await sql`
       SELECT id
       FROM checkins
       WHERE user_id = ${user_id}
-      AND challenge_id = ${userChallengeResult[0].id}
+      AND challenge_id = ${userChallengeId}
       AND DATE(checkin_time) = CURRENT_DATE
     `;
 
@@ -89,60 +93,85 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    // 5. 执行数据库插入
-    const result = await sql`
-      INSERT INTO checkins (user_id, challenge_id, proof)
-      VALUES (${user_id}, ${userChallengeResult[0].id}, ${proof || null})
-      RETURNING id, user_id, challenge_id, checkin_time, proof
-    `;
-
-    // 6. 自动判定挑战完成
-    // 获取挑战的目标天数和奖励勋章代码
+    // 8. 获取挑战信息（包括奖励勋章代码）
     const challengeInfo = await sql`
-      SELECT target_duration, reward_achievement_code
+      SELECT reward_achievement_code
       FROM challenge_activities
       WHERE id = ${challenge_id}
     `;
 
-    if (challengeInfo.length > 0) {
-      const targetDuration = challengeInfo[0].target_duration;
-      const rewardAchievementCode = challengeInfo[0].reward_achievement_code;
-      
-      // 统计用户在该挑战下的打卡总天数
-      const checkinCount = await sql`
-        SELECT COUNT(*) as count
-        FROM checkins
-        WHERE user_id = ${user_id}
-        AND challenge_id = ${userChallengeResult[0].id}
+    const rewardAchievementCode = challengeInfo.length > 0 ? challengeInfo[0].reward_achievement_code : null;
+
+    // 🎯 核心事务控制：使用 PostgreSQL 事务确保数据一致性
+    let checkinResult = null;
+    let achievementResult = null;
+
+    try {
+      // 开始事务（Neon PostgreSQL 支持 BEGIN/COMMIT/ROLLBACK）
+      await sql`BEGIN`;
+
+      // 步骤 1：向 checkins 插入打卡记录
+      checkinResult = await sql`
+        INSERT INTO checkins (user_id, challenge_id, proof)
+        VALUES (${user_id}, ${userChallengeId}, ${proof || null})
+        RETURNING id, user_id, challenge_id, checkin_time, proof
       `;
 
-      const checkedInDays = checkinCount[0].count;
-      
-      // 如果已打卡天数 >= 挑战目标天数，则更新user_challenges的status为'completed'并发放勋章
-      if (checkedInDays >= targetDuration) {
+      // 步骤 2：更新 user_challenges 的已打卡天数
+      const newProgress = (currentProgress || 0) + 1;
+      await sql`
+        UPDATE user_challenges
+        SET current_progress = ${newProgress}
+        WHERE id = ${userChallengeId}
+      `;
+
+      // 步骤 3：判断是否达到完成阈值，若是则发放成就
+      if (newProgress >= targetDuration && rewardAchievementCode) {
         // 更新挑战状态为已完成
         await sql`
           UPDATE user_challenges
           SET status = 'completed'
-          WHERE id = ${userChallengeResult[0].id}
+          WHERE id = ${userChallengeId}
         `;
 
-        // 自动发放勋章
-        if (rewardAchievementCode) {
-          await sql`
-            INSERT INTO user_achievements (user_id, achievement_code)
-            VALUES (${user_id}, ${rewardAchievementCode})
-            ON CONFLICT DO NOTHING
-          `;
-        }
+        // 发放成就（使用 ON CONFLICT 避免重复发放）
+        achievementResult = await sql`
+          INSERT INTO user_achievements (user_id, achievement_code, awarded_at)
+          VALUES (${user_id}, ${rewardAchievementCode}, CURRENT_TIMESTAMP)
+          ON CONFLICT (user_id, achievement_code) DO NOTHING
+          RETURNING id, user_id, achievement_code, awarded_at
+        `;
       }
+
+      // 提交事务
+      await sql`COMMIT`;
+
+      console.log('✅ 打卡事务提交成功');
+      
+    } catch (transactionError) {
+      // 回滚事务
+      await sql`ROLLBACK`;
+      
+      console.error('❌ 打卡事务回滚:', transactionError.message);
+      
+      return {
+        code: 500,
+        message: '打卡失败：事务回滚',
+        error: transactionError.message,
+        data: null
+      };
     }
 
-    // 7. 返回结果
+    // 9. 返回结果
     return {
       code: 200,
-      message: '打卡成功',
-      data: result[0] // 返回插入的单条记录
+      message: achievementResult ? '打卡成功，恭喜获得成就！' : '打卡成功',
+      data: {
+        checkin: checkinResult[0],
+        achievement: achievementResult?.[0] || null,
+        new_progress: (currentProgress || 0) + 1,
+        target_duration: targetDuration
+      }
     };
 
   } catch (error) {

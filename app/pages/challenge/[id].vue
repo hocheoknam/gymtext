@@ -84,15 +84,38 @@
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-label">参与人数</span>
-                <span class="stat-value">{{ challenge.participant_count.toLocaleString() }}</span>
+                <span class="stat-value">{{ (challengeStats?.participant_count || 0).toLocaleString() }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">完成率</span>
-                <span class="stat-value">{{ challenge.completion_rate }}%</span>
+                <span class="stat-value">{{ challengeStats?.global_completion_rate || '0.00' }}%</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">挑战时长</span>
                 <span class="stat-value">{{ challenge.target_duration }}天</span>
+              </div>
+              <div class="stat-item">
+                <div class="stat-header">
+                  <span class="stat-label">挑战进度</span>
+                  <span class="stat-value">{{ challenge.checkinCount || challenge.current_progress || 0 }} / {{ challenge.target_duration }} 天</span>
+                </div>
+
+                <div class="progress-wrapper">
+                  <el-progress
+                    :percentage="progressPercent"
+                    :stroke-width="18"
+                    :status="progressPercent >= 100 ? 'success' : ''"
+                    striped
+                    striped-flow
+                  >
+                    <span>{{ progressPercent }}%</span>
+                  </el-progress>
+                </div>
+
+                <div v-if="Number(challenge.checkinCount || challenge.current_progress) >= Number(challenge.target_duration)" class="medal-wrapper">
+                  <img :src="'/badges/data-center1.png'" alt="荣誉勋章" class="medal-icon" />
+                  <div class="medal-label">解锁成就：数据中心达人</div>
+                </div>
               </div>
             </div>
           </div>
@@ -205,6 +228,17 @@ const error = ref(null);
 const isParticipated = ref(false); // 控制按钮显示的关键状态
 const isCheckedIn = ref(false); // 控制打卡状态
 const checkInLoading = ref(false); // 控制打卡按钮加载状态
+const challengeStats = ref(null); // 存储挑战统计数据
+
+// 定义一个响应式的进度百分比
+const progressPercent = computed(() => {
+  const current = Number(challenge.value?.checkinCount) || Number(challenge.value?.current_progress) || 0;
+  const target = Number(challenge.value?.target_duration) || 0;
+  
+  if (target <= 0) return 0;
+  const p = Math.floor((current / target) * 100);
+  return p > 100 ? 100 : p;
+});
 
 // 弹窗相关变量
 const currentChallengeId = ref(null);
@@ -217,15 +251,69 @@ const fetchChallengeDetail = async () => {
   try {
     loading.value = true;
     error.value = null;
-    const response = await fetch(`/api/challenge/${route.params.id}`);
-    if (!response.ok) {
+    
+    // 首先获取挑战的基本信息
+    const challengeResponse = await fetch(`/api/challenge/${route.params.id}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    
+    if (!challengeResponse.ok) {
       throw new Error('挑战不存在');
     }
-    const data = await response.json();
-    if (data.code === 200) {
-      challenge.value = data.data;
+    
+    const challengeData = await challengeResponse.json();
+    console.log('挑战基本信息:', challengeData);
+    
+    if (challengeData.code === 200) {
+      challenge.value = challengeData.data;
+      
+      // 然后获取用户的挑战进度
+      const currentUserId = getCurrentUserId();
+      const userChallengeResponse = await fetch(`/api/check-user-challenge?user_id=${currentUserId}&challenge_id=${route.params.id}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      const userChallengeData = await userChallengeResponse.json();
+      console.log('用户挑战进度:', userChallengeData);
+      
+      // 处理可能的数据层级嵌套
+      const userChallengeResponseData = userChallengeData._data ? userChallengeData._data : userChallengeData;
+      
+      if (userChallengeResponseData.code === 200 && userChallengeResponseData.data) {
+        // 更新挑战的当前进度，确保是数字类型
+        challenge.value.current_progress = Number(userChallengeResponseData.data.current_progress) || 0;
+        console.log('更新后的挑战记录:', challenge.value);
+      }
+      
+      // 获取挑战统计数据
+      const statsResponse = await fetch(`/api/challenge/check?user_id=${currentUserId}&challenge_id=${route.params.id}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      const statsData = await statsResponse.json();
+      console.log('挑战统计数据:', statsData);
+      
+      // 处理可能的数据层级嵌套
+      const statsResponseData = statsData._data ? statsData._data : statsData;
+      
+      if (statsResponseData.code === 200) {
+        challengeStats.value = statsResponseData.data;
+        console.log('更新后的挑战统计数据:', challengeStats.value);
+      }
     } else {
-      throw new Error(data.message || '获取挑战详情失败');
+      throw new Error(challengeData.message || '获取挑战详情失败');
     }
   } catch (err) {
     console.error('请求失败:', err);
@@ -263,14 +351,47 @@ const checkChallengeStatus = async () => {
   try {
     const currentUserId = getCurrentUserId(); // 使用统一的用户ID获取函数
     
-    const response = await fetch(`/api/challenge/check?user_id=${currentUserId}&challenge_id=${route.params.id}`);
+    const response = await fetch(`/api/challenge/check?user_id=${currentUserId}&challenge_id=${route.params.id}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     const data = await response.json();
     
-    if (data.code === 200) {
-      isParticipated.value = data.data.isJoined;
-      if (data.data.isJoined) {
+    // 打印检查挑战状态的响应数据
+    console.log('检查挑战状态的响应数据:', data);
+    
+    // 处理可能的数据层级嵌套
+    const responseData = data._data ? data._data : data;
+    
+    if (responseData.code === 200) {
+      isParticipated.value = responseData.data.isJoined;
+      // 更新挑战的当前进度和目标天数
+      if (challenge.value) {
+        // 确保 checkinCount 是数字类型
+        challenge.value.checkinCount = Number(responseData.data.checkinCount) || 0;
+        // 同时更新 current_progress 以保持兼容性
+        challenge.value.current_progress = challenge.value.checkinCount;
+        // 确保 target_duration 有值
+        if (responseData.data.target_duration) {
+          challenge.value.target_duration = Number(responseData.data.target_duration) || 0;
+        }
+        // 更新参与人数
+        if (responseData.data.participant_count) {
+          challenge.value.participant_count = Number(responseData.data.participant_count) || 0;
+        }
+        // 更新全站完成率
+        if (responseData.data.global_completion_rate) {
+          challenge.value.global_completion_rate = responseData.data.global_completion_rate;
+        }
+      }
+      // 更新挑战统计数据
+      challengeStats.value = responseData.data;
+      if (responseData.data.isJoined) {
         // 检查是否完成
-        if (data.data.isCompleted) {
+        if (responseData.data.isCompleted) {
           challengeStatus.value = 'completed';
           // 检查是否已经获得勋章
           await checkAchievement();
@@ -354,7 +475,10 @@ const checkCheckInStatus = async () => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     });
     
@@ -442,13 +566,79 @@ const handleCheckIn = async () => {
     const data = await response.json();
     console.log('打卡API响应数据:', data);
     
-    if (data.code === 200) {
+    // 处理可能的数据层级嵌套
+    const responseData = data._data ? data._data : data;
+    
+    if (responseData.code === 200) {
       console.log('打卡成功，设置isCheckedIn为true');
       isCheckedIn.value = true;
-      ElMessage.success('打卡成功！');
+
+      // 重新获取用户挑战状态
+      await checkChallengeStatus();
+      
+      // 检查是否达到目标天数
+      const challengeInfo = challenge.value;
+      const targetDuration = challengeInfo?.target_duration || 7;
+      
+      // 重新获取挑战状态，包含打卡次数
+      const challengeStatusResponse = await fetch(`/api/challenge/check?user_id=${currentUserId}&challenge_id=${challengeId}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      const challengeStatusData = await challengeStatusResponse.json();
+      
+      // 处理可能的数据层级嵌套
+      const challengeStatusResponseData = challengeStatusData._data ? challengeStatusData._data : challengeStatusData;
+      
+      // 假设后端返回了打卡次数
+      const checkedInDays = challengeStatusResponseData.data?.checkinCount || 0;
+      
+      // 更新挑战的当前进度，添加延时效果
+      if (challenge.value) {
+        const oldProgress = challenge.value.current_progress || 0;
+        challenge.value.current_progress = oldProgress;
+        
+        // 模拟进度条增长效果
+        if (oldProgress < checkedInDays) {
+          let current = oldProgress;
+          const interval = setInterval(() => {
+            current++;
+            challenge.value.current_progress = current;
+            if (current >= checkedInDays) {
+              clearInterval(interval);
+            }
+          }, 100);
+        } else {
+          challenge.value.current_progress = checkedInDays;
+        }
+      }
+      
+      if (checkedInDays === targetDuration) {
+        // 触发发放勋章接口
+        await awardAchievement();
+        
+        // 弹出成就勋章大图
+        ElMessageBox.alert(
+          `<div style="text-align: center; padding: 20px;">
+            <h2 style="color: #E6A23C; margin-bottom: 10px;">🏆 挑战圆满成功！</h2>
+            <p style="color: #606266;">恭喜你坚持了${targetDuration}天，获得了专属荣誉</p>
+            <div style="margin: 30px 0;">
+              <img :src="'/badges/data-center1.png'" style="width: 150px; height: 150px; filter: drop-shadow(0 0 15px rgba(230,162,60,0.5)); animation: pulse 2s infinite;" />
+              <h3 style="margin-top: 15px; font-size: 20px;">数据中心达人</h3>
+            </div>
+          </div>`,
+          '荣誉时刻',
+          { dangerouslyUseHTMLString: true, confirmButtonText: '收下勋章', center: true }
+        );
+      } else {
+        ElMessage.success('打卡成功！继续坚持！');
+      }
     } else {
-      console.log('打卡失败:', data.message);
-      ElMessage.error(data.message || '打卡失败');
+      console.log('打卡失败:', responseData.message);
+      ElMessage.error(responseData.message || '打卡失败');
     }
   } catch (error) {
     console.error('打卡失败:', error);
@@ -534,33 +724,28 @@ const handleJoinChallenge = (id) => {
 // 显示挑战结果
 const showChallengeResult = async () => {
   try {
-    // 检查挑战状态
+    // 1. 确保获取最新状态
     await checkChallengeStatus();
     
-    // 根据状态显示不同的结果
     if (challengeStatus.value === 'completed') {
-      // 已完成，显示勋章
-      if (userAchievements.value.length === 0) {
-        // 还没有勋章，颁发勋章
-        await awardAchievement();
-      }
+      // 2. 如果还没勋章，执行颁发逻辑
+      // 假设 'challenge_finisher' 是你 award-achievement.js 中定义的通用勋章代码
+      await awardAchievement();
       
-      // 显示成功弹窗
+      // 3. 弹出华丽的成功提示
       ElMessageBox.alert(
         `<div style="text-align: center;">
-          <h3>挑战完成！</h3>
-          <p>恭喜你完成了挑战，获得了勋章！</p>
-          ${userAchievements.value.length > 0 ? `
-            <div style="margin: 20px 0;">
-              <img src="${userAchievements.value[0].icon_url || 'https://neeko-copilot.bytedance.net/api/text2image?prompt=golden%20trophy%20medal&size=512x512'}" style="width: 100px; height: 100px; border-radius: 50%;" />
-              <p style="margin-top: 10px; font-weight: bold;">${userAchievements.value[0].name}</p>
-              <p style="color: #666;">${userAchievements.value[0].description}</p>
-            </div>
-          ` : ''}
+          <h2 style="color: #67C23A;">🎉 挑战圆满完成！</h2>
+          <p>你已坚持不懈地完成了所有打卡任务</p>
+          <div style="margin: 20px 0;">
+            <img src="${userAchievements.value[0]?.icon_url || 'https://neeko-copilot.bytedance.net/api/text2image?prompt=golden%20medal&size=512x512'}" 
+                 style="width: 120px; height: 120px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));" />
+            <p style="margin-top: 10px; font-weight: bold; font-size: 18px;">${userAchievements.value[0]?.name || '挑战达人'}</p>
+          </div>
         </div>`,
-        '挑战结果',
+        '荣誉时刻',
         {
-          confirmButtonText: '确定',
+          confirmButtonText: '太棒了',
           dangerouslyUseHTMLString: true
         }
       );
@@ -680,6 +865,25 @@ const getStatusClass = (statusText) => {
     default:
       return '';
   }
+};
+
+// 计算挑战进度百分比
+const calculatePercentage = (current, target) => {
+  // 1. 确保输入被转换为数字，如果不存在则默认为 0
+  const curr = Number(current) || 0;
+  const total = Number(target) || 0;
+
+  // 2. 如果总天数为 0（数据还没加载出来），返回 0 防止除以零
+  if (total <= 0) return 0;
+
+  // 3. 计算百分比
+  let percent = Math.floor((curr / total) * 100);
+
+  // 4. 限制范围在 0 - 100 之间
+  if (percent < 0) return 0;
+  if (percent > 100) return 100;
+
+  return percent;
 };
 
 // 获取主要按钮文本
@@ -897,11 +1101,39 @@ const getPrimaryButtonText = (startDate, targetDuration) => {
   margin-bottom: 8px;
 }
 
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-wrapper {
+  margin: 20px 0;
+  padding: 10px 0;
+}
+
+.stat-label {
+  color: #909399;
+  font-size: 14px;
+}
+
 .stat-value {
+  font-weight: bold;
+  color: #303133;
   display: block;
   font-size: 24px;
-  font-weight: 600;
-  color: #303133;
+}
+
+/* 深度选择器修改 Element Plus 进度条颜色 */
+:deep(.el-progress-bar__inner) {
+  background-color: #409EFF; /* 进行中蓝色 */
+  transition: width 0.6s ease;
+}
+
+/* 完成后的颜色 */
+:deep(.el-progress--success .el-progress-bar__inner) {
+  background-color: #67C23A;
 }
 
 .challenge-actions {
@@ -990,5 +1222,38 @@ const getPrimaryButtonText = (startDate, targetDuration) => {
 
 :deep(.el-dialog__wrapper) {
   z-index: 2000 !important;
+}
+
+/* 勋章显示样式 */
+.medal-wrapper {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  background: linear-gradient(145deg, #fff5e6, #ffffff);
+  border-radius: 12px;
+  border: 1px solid #ffd700; /* 给完成挑战加点金色边框感 */
+}
+
+.medal-icon {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  /* 增加一个小动画，让勋章更有仪式感 */
+  animation: medal-bounce 1s ease;
+}
+
+.medal-label {
+  font-size: 14px;
+  color: #b8860b;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+@keyframes medal-bounce {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

@@ -60,21 +60,30 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="挑战目标 (天)">
-                  <el-input-number v-model="form.duration_days" :min="1" :step="7" class="w-full" />
+                  <el-input-number v-model="form.target_duration" :min="1" :step="1" class="w-full" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="开始日期">
-                  <el-date-picker
-                    v-model="form.start_date"
-                    type="date"
-                    placeholder="选择日期"
-                    value-format="YYYY-MM-DD"
-                    class="w-full"
-                  />
+                <el-form-item label="奖励勋章">
+                  <el-select v-model="form.reward_achievement_code" placeholder="选择奖励勋章" class="w-full">
+                    <el-option label="数据中心达人" value="data-center" />
+                    <el-option label="坚持达人" value="persistence" />
+                    <el-option label="健身新手" value="fitness-beginner" />
+                    <el-option label="健身专家" value="fitness-expert" />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
+
+            <el-form-item label="开始日期">
+              <el-date-picker
+                v-model="form.start_date"
+                type="date"
+                placeholder="选择日期"
+                value-format="YYYY-MM-DD"
+                class="w-full"
+              />
+            </el-form-item>
 
             <el-form-item label="挑战描述">
               <el-input
@@ -121,6 +130,9 @@
                 <div class="challenge-header">
                   <h2>{{ challenge.title }}</h2>
                   <span :class="['challenge-badge', getStatusClass(getStatusText(challenge.start_date, challenge.target_duration))]">{{ getStatusText(challenge.start_date, challenge.target_duration) }}</span>
+                  <div v-if="challenge.user_status === 'completed'" class="medal-badge">
+                    <img :src="'/badges/data-center.png'" title="已获得成就" />
+                  </div>
                 </div>
                 <div class="challenge-content">
                   <p>{{ challenge.description }}</p>
@@ -162,6 +174,9 @@
                 <div class="challenge-header">
                   <h2>{{ challenge.title }}</h2>
                   <span :class="['challenge-badge', getStatusClass(getStatusText(challenge.start_date, challenge.target_duration))]">{{ getStatusText(challenge.start_date, challenge.target_duration) }}</span>
+                  <div v-if="challenge.user_status === 'completed'" class="medal-badge">
+                    <img :src="'/badges/data-center.png'" title="已获得成就" />
+                  </div>
                 </div>
                 <div class="challenge-content">
                   <p>{{ challenge.description }}</p>
@@ -202,6 +217,9 @@
                 <div class="challenge-header">
                   <h2>{{ challenge.title }}</h2>
                   <span :class="['challenge-badge', getStatusClass(getStatusText(challenge.start_date, challenge.target_duration))]">{{ getStatusText(challenge.start_date, challenge.target_duration) }}</span>
+                  <div v-if="challenge.user_status === 'completed'" class="medal-badge">
+                    <img :src="'/badges/data-center.png'" title="已获得成就" />
+                  </div>
                 </div>
                 <div class="challenge-content">
                   <p>{{ challenge.description }}</p>
@@ -330,7 +348,8 @@ const submitting = ref(false);
 const form = ref({
   title: '',
   description: '',
-  duration_days: 7,
+  target_duration: 7,
+  reward_achievement_code: 'data-center',
   start_date: ''
 });
 
@@ -455,7 +474,8 @@ const submitChallenge = async () => {
     const submitData = {
       title: form.value.title,
       description: form.value.description,
-      target_duration: form.value.duration_days, // 转换为后端需要的字段名
+      target_duration: form.value.target_duration,
+      reward_achievement_code: form.value.reward_achievement_code,
       start_date: form.value.start_date,
       userRole: userRole.value // 將管理員身份傳給後端校驗
     };
@@ -473,7 +493,7 @@ const submitChallenge = async () => {
       });
       dialogVisible.value = false;
       // 重置表單
-      form.value = { title: '', description: '', duration_days: 7, start_date: '' };
+      form.value = { title: '', description: '', target_duration: 7, reward_achievement_code: 'data-center', start_date: '' };
       // 重新獲取列表，讓新挑戰立刻顯示
       fetchChallenges();
     }
@@ -943,6 +963,28 @@ const formatDate = (dateString) => {
   .empty-container {
     padding: 20px 0;
   }
+}
+
+/* 勋章徽章样式 */
+.challenge-card {
+  position: relative;
+}
+
+.medal-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: white;
+  border-radius: 50%;
+  padding: 5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+.medal-badge img {
+  width: 40px;
+  height: 40px;
+  display: block;
 }
 
 /* 确保弹窗基于视口居中 */

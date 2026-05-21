@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
         title,
         description,
         target_duration,
+        reward_achievement_code,
         start_date,
         end_date,
         status,
@@ -27,6 +28,7 @@ export default defineEventHandler(async (event) => {
         ${body.title},
         ${body.description},
         ${parseInt(body.target_duration)}, -- 强制转为整数类型
+        ${body.reward_achievement_code},
         ${body.start_date},
         ${body.start_date}::date + (${parseInt(body.target_duration)} - 1) * interval '1 day', -- 自动计算结束日期
         'upcoming',

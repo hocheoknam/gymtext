@@ -15,9 +15,9 @@ export default defineEventHandler(async (event) => {
   try {
     const result = await sql`
       INSERT INTO user_challenges (
-        title, description, duration_days, start_date, status
+        title, description, target_duration, reward_achievement_code, start_date, status
       ) VALUES (
-        ${body.title}, ${body.description}, ${body.duration_days}, ${body.start_date}, 'upcoming'
+        ${body.title}, ${body.description}, ${body.target_duration}, ${body.reward_achievement_code}, ${body.start_date}, 'upcoming'
       ) RETURNING *;
     `;
     return { code: 200, data: result[0] };

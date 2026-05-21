@@ -57,24 +57,30 @@
             </div>
           </div>
 
-          <div class="exercise-details" style="padding: 15px;">
+          <div class="exercise-details">
             <h3 class="exercise-name">{{ item.name }}</h3>
-            <div class="tags">
+            <div class="exercise-tags">
               <el-tag size="small">{{ item.body_part }}</el-tag>
-              <el-tag size="small" type="success" style="margin-left: 5px;">{{ item.equipment }}</el-tag>
+              <el-tag size="small" type="success">{{ item.equipment }}</el-tag>
               <el-tag 
                 v-if="item.level" 
                 size="small" 
-                :type="item.level === '高级' ? 'danger' : (item.level === '中级' ? 'warning' : 'info')" 
-                style="margin-left: 5px;" 
+                :type="item.level === '高级' ? 'danger' : (item.level === '中级' ? 'warning' : 'info')"
+                effect="dark"
               >
                 {{ item.level }}
               </el-tag>
             </div>
 
-            <p class="description" v-if="item.description">
-              {{ item.description }}
-            </p>
+            <div class="description-container">
+              <p :class="['exercise-description', { 'is-expanded': item.showAll }]">
+                {{ item.description }}
+              </p>
+              <div class="expand-icon" @click="item.showAll = !item.showAll">
+                <el-icon v-if="!item.showAll"><ArrowDown /></el-icon>
+                <el-icon v-else><ArrowUp /></el-icon>
+              </div>
+            </div>
 
             <div v-if="item.sets_reps" class="suggestion">
               建议：{{ item.sets_reps }}
@@ -92,7 +98,7 @@
 import { ref, onMounted } from 'vue'
 import { navigateTo } from 'nuxt/app'
 import { useHead } from '#imports'
-import { ArrowLeft, Tools, Picture } from '@element-plus/icons-vue'
+import { ArrowLeft, Tools, Picture, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 
 // 添加 meta 标签防止图片防盗链
 useHead({
@@ -137,8 +143,15 @@ const loadExercises = async () => {
     
     // 检查返回格式
     if (res.code === 200 && res.data) {
-      exercises.value = res.data
-      allExercises.value = res.data // 存储原始数据
+      // 为每个动作增加一个 showAll 属性，控制展开/折叠
+      exercises.value = res.data.map(ex => ({
+        ...ex,
+        showAll: false
+      }))
+      allExercises.value = res.data.map(ex => ({
+        ...ex,
+        showAll: false
+      })) // 存储原始数据
       console.log('数据加载成功:', exercises.value.length, '条记录')
       // 输出第一条数据的结构，以便了解字段名
       if (exercises.value.length > 0) {
@@ -147,8 +160,15 @@ const loadExercises = async () => {
       }
     } else if (res.data) {
       // 兼容不同的返回格式
-      exercises.value = res.data
-      allExercises.value = res.data
+      // 为每个动作增加一个 showAll 属性，控制展开/折叠
+      exercises.value = res.data.map(ex => ({
+        ...ex,
+        showAll: false
+      }))
+      allExercises.value = res.data.map(ex => ({
+        ...ex,
+        showAll: false
+      })) // 存储原始数据
       console.log('数据加载成功（兼容格式）:', exercises.value.length, '条记录')
       // 输出第一条数据的结构，以便了解字段名
       if (exercises.value.length > 0) {
@@ -191,7 +211,7 @@ const filterData = () => {
     
     const matchesEquipment = !filterEquipment.value || 
                              equipmentValue.includes(filterEquipment.value);
-                             
+                              
     const matchesLevel = !filterLevel.value || 
                          levelValue === filterLevel.value;
     
@@ -202,6 +222,12 @@ const filterData = () => {
     
     return matchesBodyPart && matchesEquipment && matchesLevel;
   });
+  
+  // 确保每个动作都有 showAll 属性
+  exercises.value = exercises.value.map(ex => ({
+    ...ex,
+    showAll: false
+  }));
   
   console.log('筛选后数据量:', exercises.value.length);
   console.log('筛选完成');
@@ -231,14 +257,16 @@ onMounted(() => {
 }
 
 .action-grid {
-  margin-top: 10px;
+  margin-top: 20px; /* 增加與上方篩選欄的距離 */
 }
 
 .exercise-card {
-  margin-bottom: 20px;
+  margin-bottom: 30px; /* 增加上下卡片之間的間距 */
   transition: transform 0.3s;
   border-radius: 12px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .exercise-card:hover {
@@ -248,19 +276,24 @@ onMounted(() => {
 
 .gif-container {
   width: 100%;
-  height: 180px; /* 固定高度，防止页面抖动 */
-  background-color: #f5f7fa;
+  height: 200px;
+  background-color: #f8f9fb; /* 稍微淺一點的底色 */
+  border-bottom: 1px solid #ebeef5; /* 加一條淡淡的分割線 */
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
 .gif-container img {
+  /* 核心修改：使用 contain 替换 cover */
   width: 100%;
   height: 100%;
-  object-fit: cover; /* 保证图片铺满容器 */
+  object-fit: contain;
+  
+  /* 确保动图不会被放大得太模糊 */
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .placeholder-box {
@@ -270,33 +303,65 @@ onMounted(() => {
 }
 
 .exercise-details {
-  padding: 15px;
+  padding: 20px; /* 增加內邊距，不要讓內容貼邊 */
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 【核心】利用 gap 自動讓子元件產生固定間距 */
 }
 
 .exercise-name {
-  margin: 0 0 10px 0;
+  margin: 0; /* 清除默認邊距，交給父級 gap 處理 */
   font-size: 18px;
+  font-weight: bold;
   color: #303133;
 }
 
-.tags {
-  margin-bottom: 12px;
+.exercise-tags {
+  margin-top: 8px;
   display: flex;
-  gap: 5px;
   flex-wrap: wrap;
+  gap: 8px; /* 標籤之間也拉開距離 */
 }
 
-/* 描述文字的具体样式 */
-.description {
+/* 描述容器 */
+.description-container {
+  position: relative;
+  margin-bottom: 0;
+}
+
+.exercise-description {
+  margin: 0;
   font-size: 14px;
   color: #606266;
-  line-height: 1.6;
-  margin: 10px 0;
+  line-height: 1.6; /* 增加行高，讓文字不擠 */
+  
+  /* 默认只显示一行 */
   display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3; /* 限制 3 行 */
-  line-clamp: 3;         /* 加上这一行，警告就会消失 */
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* 展开状态：取消行数限制 */
+.exercise-description.is-expanded {
+  line-clamp: 1;
+  -webkit-line-clamp: initial;
+  display: block;
+}
+
+/* 下拉图标样式 */
+.expand-icon {
+  text-align: center;
+  cursor: pointer;
+  color: #409EFF;
+  font-size: 12px;
+  padding-top: 4px;
+}
+
+.expand-icon:hover {
+  color: #66b1ff;
 }
 
 .suggestion {

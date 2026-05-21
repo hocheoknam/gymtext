@@ -56,8 +56,8 @@
                         <div class="food-info">
                           <h4>{{ record.name }}</h4>
                           <p>分量: {{ record.portion }} {{ record.unit }}</p>
-                          <p>热量: {{ (record.calories || 0).toFixed(1) }} kcal</p>
-                          <p>蛋白质: {{ (record.protein || 0).toFixed(1) }} g | 碳水: {{ (record.carbs || 0).toFixed(1) }} g | 脂肪: {{ (record.fat || 0).toFixed(1) }} g</p>
+                          <p>热量: {{ Number(record.calories || 0).toFixed(1) }} kcal</p>
+                          <p>蛋白质: {{ Number(record.protein || 0).toFixed(1) }} g | 碳水: {{ Number(record.carbs || 0).toFixed(1) }} g | 脂肪: {{ Number(record.fat || 0).toFixed(1) }} g</p>
                         </div>
                         <!-- 操作按钮组 -->
                         <el-button-group>
@@ -125,7 +125,7 @@
                 />
                 <span class="unit">kcal</span>
               </div>
-              <span v-else>{{ (totalNutrition.calories || 0).toFixed(1) }} / {{ dailyGoal.calories }} kcal</span>
+              <span v-else>{{ Number(totalNutrition.calories || 0).toFixed(1) }} / {{ dailyGoal.calories }} kcal</span>
             </div>
           </div>
           <!-- 蛋白质仪表盘 -->
@@ -148,7 +148,7 @@
                 />
                 <span class="unit">g</span>
               </div>
-              <span v-else>{{ (totalNutrition.protein || 0).toFixed(1) }} / {{ dailyGoal.protein }} g</span>
+              <span v-else>{{ Number(totalNutrition.protein || 0).toFixed(1) }} / {{ dailyGoal.protein }} g</span>
             </div>
           </div>
           <!-- 碳水化合物仪表盘 -->
@@ -171,7 +171,7 @@
                 />
                 <span class="unit">g</span>
               </div>
-              <span v-else>{{ (totalNutrition.carbs || 0).toFixed(1) }} / {{ dailyGoal.carbs }} g</span>
+              <span v-else>{{ Number(totalNutrition.carbs || 0).toFixed(1) }} / {{ dailyGoal.carbs }} g</span>
             </div>
           </div>
           <!-- 脂肪仪表盘 -->
@@ -194,7 +194,7 @@
                 />
                 <span class="unit">g</span>
               </div>
-              <span v-else>{{ (totalNutrition.fat || 0).toFixed(1) }} / {{ dailyGoal.fat }} g</span>
+              <span v-else>{{ Number(totalNutrition.fat || 0).toFixed(1) }} / {{ dailyGoal.fat }} g</span>
             </div>
           </div>
         </div>
@@ -602,10 +602,10 @@ const pieChartData = computed(() => {
 // 计算属性：营养详情表格数据
 const nutritionDetails = computed(() => {
   return [
-    { name: '热量', amount: Number(totalNutrition.value.calories).toFixed(1), unit: 'kcal', percentage: caloriesPercentage.value },
-    { name: '蛋白质', amount: Number(totalNutrition.value.protein).toFixed(1), unit: 'g', percentage: proteinPercentage.value },
-    { name: '碳水化合物', amount: Number(totalNutrition.value.carbs).toFixed(1), unit: 'g', percentage: carbsPercentage.value },
-    { name: '脂肪', amount: Number(totalNutrition.value.fat).toFixed(1), unit: 'g', percentage: fatPercentage.value }
+    { name: '热量', amount: Number(totalNutrition.value.calories || 0).toFixed(1), unit: 'kcal', percentage: caloriesPercentage.value },
+    { name: '蛋白质', amount: Number(totalNutrition.value.protein || 0).toFixed(1), unit: 'g', percentage: proteinPercentage.value },
+    { name: '碳水化合物', amount: Number(totalNutrition.value.carbs || 0).toFixed(1), unit: 'g', percentage: carbsPercentage.value },
+    { name: '脂肪', amount: Number(totalNutrition.value.fat || 0).toFixed(1), unit: 'g', percentage: fatPercentage.value }
   ]
 })
 

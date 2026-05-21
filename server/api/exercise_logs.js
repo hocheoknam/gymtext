@@ -33,8 +33,9 @@ export default defineEventHandler(async (event) => {
       description: item.description,
       target_muscle: item.target_muscle,
       sets_reps: item.sets_reps,
-      // 确保这里映射正确，前端才能看到 GIF
-      image_url: item.gif_url || '/exercises/placeholder.png'
+      // 【核心修改】：根據動作的 id 自動生成圖片路徑
+      // 如果數據庫裡有 gif_url 則用數據庫的，否則根據 id 映射 (1 -> /exercises/1.gif)
+      image_url: item.gif_url || `/exercises/${item.id}.gif`
     }));
 
     return {
